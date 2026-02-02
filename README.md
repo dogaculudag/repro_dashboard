@@ -1,0 +1,277 @@
+# Repro Department File Tracking System (RDFTS)
+
+A production-ready web application for a printing cylinder engraving company's Repro department to track physical job files across departments, measure time spent per department (bottleneck analysis), and report employee performance and throughput.
+
+## 🎯 Purpose
+
+This system solves the problem of **lost physical files** in the Repro department by:
+- Enforcing mandatory "takeover" (Devral) when receiving physical files
+- Logging every transfer with timestamps
+- Tracking time spent per department automatically
+- Providing searchable file history and current location
+- Generating performance and bottleneck reports
+
+## 📚 Documentation
+
+All project documentation is available in the `/docs` folder:
+
+| Document | Description |
+|----------|-------------|
+| [01_PRD.md](docs/01_PRD.md) | Product Requirements Document - business requirements, user stories, personas |
+| [02_TECHNICAL_DESIGN.md](docs/02_TECHNICAL_DESIGN.md) | Technical architecture, state machine, component design |
+| [03_DATABASE_SCHEMA.md](docs/03_DATABASE_SCHEMA.md) | PostgreSQL schema, Prisma models, migrations, seed data |
+| [04_API_DESIGN.md](docs/04_API_DESIGN.md) | REST API endpoints, payloads, validation rules |
+| [05_UI_DESIGN.md](docs/05_UI_DESIGN.md) | Frontend pages, wireframes, UI components |
+| [06_IMPLEMENTATION_PLAN.md](docs/06_IMPLEMENTATION_PLAN.md) | Milestones, tasks, timeline |
+| [07_TEST_PLAN.md](docs/07_TEST_PLAN.md) | Unit, integration, E2E testing strategy |
+| [08_SECURITY_NFR.md](docs/08_SECURITY_NFR.md) | Security model, non-functional requirements |
+| [09_SCOPE.md](docs/09_SCOPE.md) | MVP scope and Phase 2 roadmap |
+
+## 🏗️ Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14 (App Router), React 18, TypeScript |
+| Styling | Tailwind CSS, shadcn/ui |
+| Backend | Next.js API Routes, Server Actions |
+| Database | PostgreSQL 15 |
+| ORM | Prisma 5 |
+| Authentication | NextAuth.js (Auth.js) v5 |
+| Validation | Zod |
+| Charts | Recharts |
+| Testing | Vitest, Playwright |
+| Containerization | Docker, Docker Compose |
+
+## 🔄 Core Workflow
+
+```
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│    ÖNREPRO       │────▶│     REPRO        │────▶│    CUSTOMER      │
+│  Creates File    │     │   (Designer)     │     │   APPROVAL       │
+│                  │     │                  │     │  (Virtual Dept)  │
+└──────────────────┘     └────────┬─────────┘     └────────┬─────────┘
+                                  │                        │
+                                  │◀───────── NOK ────────┘
+                                  │           (Same Designer)
+                                  │
+                                  ▼
+                         ┌──────────────────┐
+                         │    QUALITY       │
+                         │  (Plotter)       │
+                         └────────┬─────────┘
+                                  │
+                    ┌─────── NOK ─┴── OK ─────┐
+                    │ (Same Designer)          │
+                    ▼                          ▼
+           ┌──────────────────┐     ┌──────────────────┐
+           │     REPRO        │     │     KOLAJ        │
+           │   (Revision)     │     │   (Assembly)     │
+           └──────────────────┘     └────────┬─────────┘
+                                             │
+                                             ▼
+                                   ┌──────────────────┐
+                                   │  SENT TO         │
+                                   │  PRODUCTION      │
+                                   │  (Terminal)      │
+                                   └──────────────────┘
+```
+
+## 👥 User Roles
+
+| Role | Description | Key Permissions |
+|------|-------------|-----------------|
+| **Admin (Manager)** | Bahar Hanım - Full access | Assign jobs, view reports, manage users |
+| **Önrepro** | Pre-production staff | Create files, handle approval flow |
+| **Grafiker** | Repro designers | Work on assigned files only |
+| **Kalite** | Quality control | Approve/reject designs |
+| **Kolaj** | Assembly | Final prep, send to production |
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 20+
+- Docker & Docker Compose
+- PostgreSQL 15 (or use Docker)
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd repro-tracking
+
+# Install dependencies
+npm install
+
+# Start database with Docker
+docker-compose up -d db
+
+# Setup environment variables
+cp .env.example .env
+
+# Run database migrations
+npx prisma migrate dev
+
+# Seed the database
+npx prisma db seed
+
+# Start development server
+npm run dev
+```
+
+### Docker Setup (Full Stack)
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Access the application
+open http://localhost:3000
+```
+
+### Default Login Credentials (Seed Data)
+
+| Username | Password | Role |
+|----------|----------|------|
+| bahar | password123 | Admin |
+| onrepro1 | password123 | Önrepro |
+| grafiker1 | password123 | Grafiker |
+| kalite1 | password123 | Kalite |
+| kolaj1 | password123 | Kolaj |
+
+## 📁 Project Structure
+
+```
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Authentication pages
+│   │   └── login/
+│   ├── (dashboard)/       # Protected dashboard pages
+│   │   ├── admin/         # Admin settings
+│   │   ├── assignments/   # Assignment pool
+│   │   ├── files/         # File management
+│   │   ├── queue/         # Department queue
+│   │   └── reports/       # Reports & analytics
+│   └── api/               # API routes
+│       ├── auth/
+│       ├── files/
+│       ├── locations/
+│       ├── reports/
+│       └── users/
+├── components/            # React components
+│   ├── ui/               # shadcn/ui components
+│   ├── layout/           # Layout components
+│   ├── files/            # File-related components
+│   ├── dashboard/        # Dashboard components
+│   └── reports/          # Report components
+├── lib/                   # Core libraries
+│   ├── auth/             # Authentication & RBAC
+│   ├── db/               # Database client
+│   ├── services/         # Business logic
+│   ├── validations/      # Zod schemas
+│   └── utils/            # Utility functions
+├── prisma/                # Prisma ORM
+│   ├── schema.prisma     # Database schema
+│   ├── migrations/       # Database migrations
+│   └── seed.ts           # Seed data script
+├── tests/                 # Test files
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── docs/                  # Documentation
+└── docker-compose.yml     # Docker configuration
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run unit tests only
+npm run test:unit
+
+# Run integration tests
+npm run test:integration
+
+# Run E2E tests
+npm run test:e2e
+
+# Run with coverage
+npm run test:coverage
+```
+
+## 📊 Key Features
+
+### File Tracking
+- Create and search files by file number
+- Track current holder, department, and physical location
+- View complete timeline with all events and durations
+- Add notes in chronological order
+
+### Timer System
+- Automatic timer start/stop on takeover and transfer
+- Exactly one active timer per file (enforced)
+- Support for multiple timer entries per department
+- Duration calculation and reporting
+
+### Workflow Management
+- Full R100 approval loop (design → customer → quality)
+- Full R200 quality loop (quality → kolaj → production)
+- Permanent designer ownership (no reassignment on NOK)
+- MG iteration tracking for customer revisions
+
+### Reporting
+- Dashboard with real-time statistics
+- Overdue/bottleneck alerts
+- Designer throughput reports
+- Department average time analysis
+
+## 🔒 Security
+
+- Session-based authentication with secure cookies
+- Role-based access control (RBAC) at multiple layers
+- Input validation with Zod
+- SQL injection prevention via Prisma ORM
+- XSS protection with React escaping
+- CSRF protection via NextAuth
+- Comprehensive audit logging
+
+## 📋 Environment Variables
+
+```bash
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/repro_tracking"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key"
+
+# Optional
+LOG_LEVEL="info"
+```
+
+## 🗺️ Roadmap
+
+### MVP (Current)
+- ✅ Core file management
+- ✅ Full workflow (R100/R200)
+- ✅ Timer system
+- ✅ Location tracking
+- ✅ Basic reporting
+- ✅ RBAC
+
+### Phase 2 (Planned)
+- 📊 Advanced reporting & analytics
+- 🔔 In-app notifications
+- 📧 Email alerts
+- 📱 PWA support
+- 🔗 WebSocket real-time updates
+- 📤 Excel export
+
+## 📄 License
+
+Proprietary - All rights reserved.
+
+## 🤝 Support
+
+For questions or issues, contact the development team.
