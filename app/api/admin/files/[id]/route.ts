@@ -1,0 +1,42 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { adminUpdateFile } from '@/lib/services/file.service';
+import { adminUpdateFileSchema } from '@/lib/validations';
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Giriş yapmanız gerekiyor' } },
+        { status: 401 }
+      );
+    }
+    if (session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Yetkiniz yok' } },
+        { status: 403 }
+      );
+    }
+    const { id } = await params;
+    const body = await request.json();
+    const input = adminUpdateFileSchema.parse(body);
+    const data = await adminUpdateFile(id, input);
+    return NextResponse.json({ success: true, data });
+  } catch (e: unknown) {
+    console.error('PATCH /api/admin/files/[id] error:', e);
+    if (e && typeof e === 'object' && 'name' in e && (e as { name: string }).name === 'ZodError') {
+      return NextResponse.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Geçersiz veri', details: (e as { flatten: () => unknown }).flatten?.() } },
+        { status: 422 }
+      );
+    }
+    return NextResponse.json(
+      { success: false, error: { code: 'INTERNAL_ERROR', message: (e as Error).message } },
+      { status: 500 }
+    );
+  }
+}

@@ -14,6 +14,8 @@ import {
   FolderOpen,
   ClipboardList,
   Clock,
+  Tags,
+  TrendingUp,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +32,8 @@ const navigation = [
   { name: 'Dosyalarım', href: '/dashboard/queue', icon: Clock, roles: ['GRAFIKER', 'KALITE', 'KOLAJ', 'ONREPRO'] },
   { name: 'Tüm Dosyalar', href: '/dashboard/files', icon: FileText, roles: ['ADMIN', 'ONREPRO'] },
   { name: 'Raporlar', href: '/dashboard/reports', icon: BarChart3, roles: ['ADMIN'] },
+  { name: 'Analitik', href: '/dashboard/admin/analytics', icon: TrendingUp, roles: ['ADMIN'] },
+  { name: 'Dosya Tipleri', href: '/dashboard/admin/file-types', icon: Tags, roles: ['ADMIN'] },
   { name: 'Kullanıcılar', href: '/dashboard/admin/users', icon: Users, roles: ['ADMIN'] },
   { name: 'Ayarlar', href: '/dashboard/admin/settings', icon: Settings, roles: ['ADMIN'] },
 ];

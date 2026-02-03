@@ -3,7 +3,7 @@ import { FileStatus, Priority, Prisma } from '@prisma/client';
 import { createAuditLog } from './audit.service';
 import { startTimer, stopActiveTimerForFile, getActiveTimer } from './timer.service';
 import { startWork, stopWork, getFileWorkerBreakdown } from './work-session.service';
-import type { CreateFileInput, UpdateFileInput, FileQueryInput } from '@/lib/validations';
+import type { CreateFileInput, UpdateFileInput, FileQueryInput, AdminUpdateFileInput } from '@/lib/validations';
 import { calculateElapsedSeconds } from '@/lib/utils';
 
 /**
@@ -23,6 +23,10 @@ export async function createFile(
     throw new Error('Önrepro departmanı bulunamadı');
   }
 
+  const genelFileType = await prisma.fileType.findFirst({
+    where: { name: 'GENEL' },
+  });
+
   const file = await prisma.file.create({
     data: {
       fileNo: input.fileNo,
@@ -32,12 +36,16 @@ export async function createFile(
       status: FileStatus.AWAITING_ASSIGNMENT,
       currentDepartmentId: onreproDept.id,
       currentLocationSlotId: input.locationSlotId,
+      fileTypeId: genelFileType?.id ?? undefined,
+      difficultyLevel: 3,
+      difficultyWeight: 1.0,
       requiresApproval: input.requiresApproval,
       priority: input.priority as Priority,
     },
     include: {
       currentDepartment: true,
       currentLocationSlot: true,
+      fileType: true,
     },
   });
 
@@ -83,6 +91,9 @@ export async function getFileById(id: string) {
           row: true,
           column: true,
         },
+      },
+      fileType: {
+        select: { id: true, name: true },
       },
     },
   });
@@ -238,6 +249,34 @@ export async function updateFile(
 }
 
 /**
+ * Admin: Update file assignment, file type, difficulty (assignedUserId, fileTypeId, difficultyLevel, difficultyWeight).
+ */
+export async function adminUpdateFile(id: string, input: AdminUpdateFileInput) {
+  const data: Prisma.FileUpdateInput = {};
+  if (input.assignedUserId !== undefined) {
+    data.assignedDesignerId = input.assignedUserId;
+  }
+  if (input.fileTypeId !== undefined) {
+    data.fileTypeId = input.fileTypeId;
+  }
+  if (input.difficultyLevel !== undefined) {
+    data.difficultyLevel = input.difficultyLevel;
+  }
+  if (input.difficultyWeight !== undefined) {
+    data.difficultyWeight = input.difficultyWeight;
+  }
+  return prisma.file.update({
+    where: { id },
+    data,
+    include: {
+      assignedDesigner: { select: { id: true, fullName: true, username: true } },
+      currentDepartment: { select: { id: true, name: true, code: true } },
+      fileType: { select: { id: true, name: true } },
+    },
+  });
+}
+
+/**
  * Assign file to designer
  */
 export async function assignFile(
@@ -344,11 +383,15 @@ export async function takeoverFile(
     throw new Error('Dosya bulunamadı');
   }
 
-  // Validate takeover permission
-  const canTakeover = 
-    (file.pendingTakeover && file.currentDepartmentId === userDepartmentId) ||
-    ((file.status === FileStatus.ASSIGNED || file.status === FileStatus.REVISION_REQUIRED) && 
-     file.assignedDesignerId === userId);
+  if (file.status === FileStatus.SENT_TO_PRODUCTION) {
+    throw new Error('Üretime gönderilmiş dosya devralınamaz');
+  }
+
+  // Validate takeover permission: dosya kullanıcının departmanındaysa veya atanmış tasarımcıysa devralabilir
+  const canTakeover =
+    file.currentDepartmentId === userDepartmentId ||
+    ((file.status === FileStatus.ASSIGNED || file.status === FileStatus.REVISION_REQUIRED) &&
+      file.assignedDesignerId === userId);
 
   if (!canTakeover) {
     throw new Error('Bu dosyayı devralmaya yetkiniz yok');

@@ -87,6 +87,7 @@ model User {
   notes            Note[]
   auditLogs        AuditLog[]  @relation("ByUser")
   workSessions     WorkSession[]
+  timeEntries      TimeEntry[]
 
   @@map("users")
   @@index([role])
@@ -111,8 +112,23 @@ model Department {
   toAuditLogs      AuditLog[]    @relation("ToDepartment")
   slaTarget        SlaTarget?
   workSessions     WorkSession[]
+  timeEntries      TimeEntry[]
 
   @@map("departments")
+}
+
+model FileType {
+  id                      String   @id @default(uuid())
+  name                    String   @unique @db.VarChar(100)
+  description             String?  @db.VarChar(500)
+  defaultDifficultyLevel  Int?     @map("default_difficulty_level")
+  defaultDifficultyWeight Float?   @map("default_difficulty_weight")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  // Relations
+  files File[]
+
+  @@map("file_types")
 }
 
 model WorkSession {
@@ -166,6 +182,9 @@ model File {
   assignedDesignerId    String?    @map("assigned_designer_id")
   currentDepartmentId   String     @map("current_department_id")
   currentLocationSlotId String?    @map("current_location_slot_id")
+  fileTypeId            String?    @map("file_type_id")
+  difficultyLevel       Int        @default(3) @map("difficulty_level")
+  difficultyWeight      Float      @default(1.0) @map("difficulty_weight")
   iterationNumber       Int        @default(1) @map("iteration_number")
   iterationLabel        String     @default("MG1") @map("iteration_label") @db.VarChar(20)
   pendingTakeover       Boolean    @default(false) @map("pending_takeover")
@@ -179,19 +198,46 @@ model File {
   assignedDesigner    User?          @relation("AssignedDesigner", fields: [assignedDesignerId], references: [id])
   currentDepartment   Department    @relation("CurrentDepartment", fields: [currentDepartmentId], references: [id])
   currentLocationSlot LocationSlot? @relation(fields: [currentLocationSlotId], references: [id])
+  fileType            FileType?      @relation(fields: [fileTypeId], references: [id])
   timers              Timer[]
   notes               Note[]
   auditLogs           AuditLog[]
   workSessions        WorkSession[]
+  timeEntries         TimeEntry[]
 
   @@map("files")
   @@index([fileNo])
   @@index([status])
   @@index([assignedDesignerId])
   @@index([currentDepartmentId])
+  @@index([fileTypeId])
   @@index([createdAt])
   @@index([pendingTakeover])
   @@index([customerName])
+}
+
+model TimeEntry {
+  id              String    @id @default(uuid())
+  fileId          String    @map("file_id")
+  userId          String    @map("user_id")
+  departmentId    String    @map("department_id")
+  startAt         DateTime  @map("start_at")
+  endAt           DateTime? @map("end_at")
+  durationSeconds Int?      @map("duration_seconds")
+  note            String?   @db.VarChar(500)
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  file       File       @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id])
+
+  @@map("time_entries")
+  @@index([fileId])
+  @@index([userId])
+  @@index([departmentId])
+  @@index([startAt])
+  @@index([endAt])
 }
 
 model Timer {

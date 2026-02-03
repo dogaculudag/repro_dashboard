@@ -4,10 +4,20 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { formatDurationFromMinutes } from '@/lib/utils';
+import { formatDuration, formatDurationFromMinutes } from '@/lib/utils';
 import { Clock, StopCircle } from 'lucide-react';
 
-interface ActiveSession {
+type TimeEntryActive = {
+  id: string;
+  fileId: string;
+  file: { fileNo: string; customerName: string };
+  department: { name: string; code: string };
+  startAt: string;
+  durationSeconds: number;
+  isActive: boolean;
+};
+
+type WorkSessionActive = {
   id: string;
   fileId: string;
   file: { fileNo: string; customerName: string };
@@ -15,28 +25,45 @@ interface ActiveSession {
   startTime: string;
   durationMinutes: number;
   isActive: boolean;
-}
+};
 
 export function ActiveWorkSessionBanner() {
   const router = useRouter();
-  const [session, setSession] = useState<ActiveSession | null>(null);
+  const [timeEntry, setTimeEntry] = useState<TimeEntryActive | null>(null);
+  const [workSession, setWorkSession] = useState<WorkSessionActive | null>(null);
   const [loading, setLoading] = useState(true);
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [elapsedMinutes, setElapsedMinutes] = useState(0);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch('/api/work-sessions/active');
-        const json = await res.json();
-        if (mounted && json.success && json.data) {
-          setSession(json.data);
-          setElapsed(json.data.durationMinutes ?? 0);
-        } else {
-          setSession(null);
+        const [timeRes, workRes] = await Promise.all([
+          fetch('/api/time/my-active'),
+          fetch('/api/work-sessions/active'),
+        ]);
+        const timeJson = await timeRes.json();
+        const workJson = await workRes.json();
+        if (mounted) {
+          if (timeJson.success && timeJson.data) {
+            setTimeEntry(timeJson.data);
+            setElapsedSeconds(timeJson.data.durationSeconds ?? 0);
+            setWorkSession(null);
+          } else if (workJson.success && workJson.data) {
+            setWorkSession(workJson.data);
+            setElapsedMinutes(workJson.data.durationMinutes ?? 0);
+            setTimeEntry(null);
+          } else {
+            setTimeEntry(null);
+            setWorkSession(null);
+          }
         }
       } catch {
-        if (mounted) setSession(null);
+        if (mounted) {
+          setTimeEntry(null);
+          setWorkSession(null);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -45,26 +72,38 @@ export function ActiveWorkSessionBanner() {
   }, []);
 
   useEffect(() => {
-    if (!session?.isActive) return;
-    const t = setInterval(() => {
-      setElapsed((e) => e + 1);
-    }, 60_000);
-    return () => clearInterval(t);
-  }, [session?.isActive]);
+    if (timeEntry?.isActive) {
+      const t = setInterval(() => setElapsedSeconds((e) => e + 1), 1000);
+      return () => clearInterval(t);
+    }
+    if (workSession?.isActive) {
+      const t = setInterval(() => setElapsedMinutes((e) => e + 1), 60_000);
+      return () => clearInterval(t);
+    }
+  }, [timeEntry?.isActive, workSession?.isActive]);
 
   const handleStop = async () => {
     try {
-      const res = await fetch('/api/work-sessions/stop', { method: 'POST' });
-      if (res.ok) {
-        setSession(null);
-        router.refresh();
-      }
+      await Promise.all([
+        fetch('/api/time/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }),
+        fetch('/api/work-sessions/stop', { method: 'POST' }),
+      ]);
+      setTimeEntry(null);
+      setWorkSession(null);
+      router.refresh();
     } catch {
       // ignore
     }
   };
 
+  const session = timeEntry ?? workSession;
   if (loading || !session) return null;
+
+  const fileId = 'fileId' in session ? session.fileId : session.fileId;
+  const file = 'file' in session ? session.file : session.file;
+  const durationDisplay = timeEntry
+    ? formatDuration(elapsedSeconds)
+    : formatDurationFromMinutes(elapsedMinutes);
 
   return (
     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 sm:px-6 lg:px-8">
@@ -74,17 +113,15 @@ export function ActiveWorkSessionBanner() {
           <span className="text-sm font-medium text-amber-900">
             Şu an çalışıyorsunuz:{' '}
             <Link
-              href={`/dashboard/files/${session.fileId}`}
+              href={`/dashboard/files/${fileId}`}
               className="underline hover:no-underline"
             >
-              {session.file.fileNo}
+              {file.fileNo}
             </Link>
             {' — '}
-            {session.file.customerName}
+            {file.customerName}
           </span>
-          <span className="text-sm text-amber-700">
-            ({formatDurationFromMinutes(elapsed)})
-          </span>
+          <span className="text-sm text-amber-700">({durationDisplay})</span>
         </div>
         <Button
           variant="outline"

@@ -137,7 +137,7 @@ open http://localhost:3000
 |----------|----------|------|
 | bahar | password123 | Admin |
 | onrepro1 | password123 | Önrepro |
-| grafiker1 | password123 | Grafiker |
+| grafiker1 | password123 | Grafiker |      
 | kalite1 | password123 | Kalite |
 | kolaj1 | password123 | Kolaj |
 
@@ -251,6 +251,114 @@ NEXTAUTH_SECRET="your-secret-key"
 # Optional
 LOG_LEVEL="info"
 ```
+
+## 📦 Zorluk + Dosya Tipi + Süre/Performans (Implementation Summary)
+
+### Değiştirilen / Eklenen Dosyalar
+
+**Prisma & DB**
+- `prisma/schema.prisma` — FileType modeli, File’a fileTypeId, difficultyLevel, difficultyWeight, timeEntries; TimeEntry modeli; User/Department’a timeEntries.
+- `prisma/seed.ts` — GENEL dosya tipi, mevcut dosyalara fileTypeId/difficulty ataması.
+- `prisma/migrations/20260203111718_add_file_type_time_entry/migration.sql` — migration.
+
+**Servisler**
+- `lib/services/file-type.service.ts` — FileType CRUD.
+- `lib/services/time-entry.service.ts` — start/stop/active, getMyTimeSummary.
+- `lib/services/analytics.service.ts` — getUsersAnalytics (weightedScore, productivity, fileType/department kırılımı).
+- `lib/services/file.service.ts` — createFile (default fileType), getFileById (fileType include), adminUpdateFile.
+
+**Validations**
+- `lib/validations.ts` — createFileTypeSchema, updateFileTypeSchema, adminUpdateFileSchema, timeStartSchema, timeStopSchema, analyticsUsersQuerySchema, mySummaryQuerySchema, fileQuerySchema (fileTypeId, difficultyLevel).
+
+**API**
+- `app/api/admin/file-types/route.ts` — GET, POST.
+- `app/api/admin/file-types/[id]/route.ts` — GET, PATCH, DELETE.
+- `app/api/admin/files/[id]/route.ts` — PATCH (admin).
+- `app/api/time/start/route.ts` — POST.
+- `app/api/time/stop/route.ts` — POST.
+- `app/api/time/my-active/route.ts` — GET.
+- `app/api/time/my-summary/route.ts` — GET.
+- `app/api/admin/analytics/users/route.ts` — GET.
+
+**Frontend**
+- `components/layout/sidebar.tsx` — Analitik, Dosya Tipleri linkleri.
+- `app/dashboard/admin/file-types/page.tsx` — Dosya tipleri sayfası.
+- `app/dashboard/admin/file-types/file-types-client.tsx` — Liste, oluştur/düzenle/sil.
+- `app/dashboard/admin/analytics/page.tsx` — Analitik sayfası.
+- `app/dashboard/admin/analytics/analytics-client.tsx` — Tarih aralığı, kullanıcı tablosu, kırılım.
+- `app/dashboard/files/page.tsx` — fileType/difficulty/assignedUser sütunları, filtreler, FilesRow.
+- `app/dashboard/files/files-row.tsx` — Satır içi admin düzenleme (fileType, assignedUser, difficulty, weight).
+- `app/dashboard/files/[id]/page.tsx` — Süre takibi kartı, FileTimer.
+- `components/files/file-timer.tsx` — Start/Stop timer (TimeEntry).
+- `components/layout/active-work-session.tsx` — time/my-active + work-sessions/active, stop her ikisini kapatır.
+- `components/dashboard/my-summary-card.tsx` — Haftalık süre özeti (fileType kırılımı).
+- `app/dashboard/page.tsx` — MySummaryCard (çalışanlar için).
+
+**Test**
+- `vitest.config.ts` — Vitest config.
+- `lib/services/time-entry.service.test.ts` — Tek aktif TimeEntry kuralı.
+- `lib/services/analytics.service.test.ts` — weightedScore / productivity hesapları.
+
+### Çalıştırma Adımları
+
+```bash
+cd repro_dashboard
+pnpm install
+pnpm prisma migrate dev    # veya: pnpm db:migrate
+pnpm prisma db seed        # veya: pnpm db:seed
+pnpm dev
+```
+
+### Endpoint Örnekleri (curl)
+
+Admin token/session gerekir; tarayıcıda giriş yapıp cookie ile veya Bearer token ile istek atılabilir.
+
+**Dosya tipleri**
+```bash
+# Liste
+curl -s -b cookies.txt "http://localhost:3000/api/admin/file-types"
+
+# Oluştur
+curl -s -X POST -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"name":"Ambalaj","description":"Ambalaj işleri","defaultDifficultyLevel":3,"defaultDifficultyWeight":1.2}' \
+  "http://localhost:3000/api/admin/file-types"
+
+# Güncelle
+curl -s -X PATCH -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"name":"Ambalaj","defaultDifficultyWeight":1.5}' \
+  "http://localhost:3000/api/admin/file-types/<id>"
+
+# Sil (opsiyonel fallback)
+curl -s -X DELETE -b cookies.txt "http://localhost:3000/api/admin/file-types/<id>?fallbackFileTypeId=<genelId>"
+```
+
+**Admin dosya güncelleme**
+```bash
+curl -s -X PATCH -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"assignedUserId":"<userId>","fileTypeId":"<fileTypeId>","difficultyLevel":4,"difficultyWeight":1.5}' \
+  "http://localhost:3000/api/admin/files/<fileId>"
+```
+
+**Süre takibi**
+```bash
+# Başlat
+curl -s -X POST -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"fileId":"<fileId>"}' "http://localhost:3000/api/time/start"
+
+# Durdur
+curl -s -X POST -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"fileId":"<fileId>"}' "http://localhost:3000/api/time/stop"
+
+# Aktif kayıt
+curl -s -b cookies.txt "http://localhost:3000/api/time/my-active"
+```
+
+**Analitik**
+```bash
+curl -s -b cookies.txt "http://localhost:3000/api/admin/analytics/users?from=2025-01-01&to=2025-02-03"
+```
+
+---
 
 ## 🗺️ Roadmap
 

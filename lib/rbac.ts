@@ -89,10 +89,11 @@ export function canPerformAction(
       return role === 'ADMIN' && file.status === 'AWAITING_ASSIGNMENT';
 
     case 'TAKEOVER':
+      if (file.status === 'SENT_TO_PRODUCTION') return false;
       // Can take over if:
-      // 1. File is pending takeover to user's department, OR
+      // 1. File is in user's department (anyone in that department can take over), OR
       // 2. File is ASSIGNED/REVISION_REQUIRED and user is assigned designer
-      if (file.pendingTakeover && file.currentDepartmentId === departmentId) {
+      if (file.currentDepartmentId === departmentId) {
         return true;
       }
       if (

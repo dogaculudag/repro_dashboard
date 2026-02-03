@@ -136,11 +136,55 @@ export const fileQuerySchema = z.object({
   status: z.string().optional(),
   departmentId: z.string().uuid().optional(),
   assignedDesignerId: z.string().uuid().optional(),
+  fileTypeId: z.string().uuid().optional(),
+  difficultyLevel: z.coerce.number().int().min(1).max(5).optional(),
   search: z.string().optional(),
   pendingTakeover: z.coerce.boolean().optional(),
   priority: z.string().optional(),
   sortBy: z.string().default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+// File type schemas
+export const createFileTypeSchema = z.object({
+  name: z.string().min(1, 'Ad zorunludur').max(100).transform((v) => v.trim()),
+  description: z.string().max(500).optional().nullable(),
+  defaultDifficultyLevel: z.number().int().min(1).max(5).optional().nullable(),
+  defaultDifficultyWeight: z.number().min(0).optional().nullable(),
+});
+export const updateFileTypeSchema = z.object({
+  name: z.string().min(1).max(100).optional().transform((v) => v?.trim()),
+  description: z.string().max(500).optional().nullable(),
+  defaultDifficultyLevel: z.number().int().min(1).max(5).optional().nullable(),
+  defaultDifficultyWeight: z.number().min(0).optional().nullable(),
+});
+
+// Admin file update (assignedUser, fileType, difficulty)
+export const adminUpdateFileSchema = z.object({
+  assignedUserId: z.string().uuid().optional().nullable(),
+  fileTypeId: z.string().uuid().optional().nullable(),
+  difficultyLevel: z.number().int().min(1).max(5).optional(),
+  difficultyWeight: z.number().min(0).optional(),
+});
+
+// Time entry schemas
+export const timeStartSchema = z.object({
+  fileId: z.string().uuid('Geçersiz dosya ID'),
+  note: z.string().max(500).optional(),
+});
+export const timeStopSchema = z.object({
+  fileId: z.string().uuid().optional(),
+});
+
+// Analytics query
+export const analyticsUsersQuerySchema = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+});
+export const mySummaryQuerySchema = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+  period: z.enum(['today', 'week', 'month']).optional(),
 });
 
 // Type exports
@@ -155,3 +199,6 @@ export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type FileQueryInput = z.infer<typeof fileQuerySchema>;
+export type CreateFileTypeInput = z.infer<typeof createFileTypeSchema>;
+export type UpdateFileTypeInput = z.infer<typeof updateFileTypeSchema>;
+export type AdminUpdateFileInput = z.infer<typeof adminUpdateFileSchema>;

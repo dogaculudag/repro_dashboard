@@ -20,6 +20,7 @@ import {
   calculateElapsedSeconds,
 } from '@/lib/utils';
 import { FileActions } from '@/components/files/file-actions';
+import { FileTimer } from '@/components/files/file-timer';
 import { ArrowLeft, MapPin, User, Clock, Building2, Users } from 'lucide-react';
 import Link from 'next/link';
 
@@ -128,6 +129,19 @@ export default async function FileDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Süre takibi (TimeEntry) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Süre takibi</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Bu dosyada çalışma sürenizi kaydetmek için timer başlatın/durdurun (performans analitiğinde kullanılır).
+          </p>
+        </CardHeader>
+        <CardContent>
+          <FileTimer fileId={file.id} />
+        </CardContent>
+      </Card>
 
       {/* Actions */}
       {availableActions.length > 0 && (

@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   ArrowRight,
 } from 'lucide-react';
+import { MySummaryCard } from '@/components/dashboard/my-summary-card';
 
 async function getDashboardData(role: string, userId: string, departmentId: string) {
   const today = new Date();
@@ -203,6 +204,7 @@ export default async function DashboardPage() {
                 <p className="text-xs text-muted-foreground">Devralınacak dosyalar</p>
               </CardContent>
             </Card>
+            <MySummaryCard />
           </>
         )}
       </div>

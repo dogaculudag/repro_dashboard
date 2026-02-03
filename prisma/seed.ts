@@ -265,14 +265,40 @@ async function main() {
   console.log(`✅ Created ${slots.length} location slots`);
 
   // ========================================
-  // 5. Create Sample Files
+  // 5. Create default FileType (GENEL)
+  // ========================================
+  console.log('Creating default file type...');
+  const genelFileType = await prisma.fileType.upsert({
+    where: { name: 'GENEL' },
+    update: {},
+    create: {
+      name: 'GENEL',
+      description: 'Varsayılan dosya tipi',
+      defaultDifficultyLevel: 3,
+      defaultDifficultyWeight: 1.0,
+    },
+  });
+  console.log('✅ Created file type GENEL');
+
+  // Ensure all existing files have fileTypeId and difficulty fields
+  await prisma.file.updateMany({
+    where: { fileTypeId: null },
+    data: {
+      fileTypeId: genelFileType.id,
+      difficultyLevel: 3,
+      difficultyWeight: 1.0,
+    },
+  });
+
+  // ========================================
+  // 6. Create Sample Files
   // ========================================
   console.log('Creating sample files...');
 
   // File 1: Awaiting Assignment
   const file1 = await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0001' },
-    update: {},
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
     create: {
       fileNo: 'REP-2026-0001',
       customerName: 'ABC Ambalaj A.Ş.',
@@ -286,6 +312,9 @@ async function main() {
       status: FileStatus.AWAITING_ASSIGNMENT,
       currentDepartmentId: deptMap.ONREPRO.id,
       currentLocationSlotId: slotMap.A1.id,
+      fileTypeId: genelFileType.id,
+      difficultyLevel: 3,
+      difficultyWeight: 1.0,
       priority: Priority.NORMAL,
     },
   });
@@ -303,7 +332,7 @@ async function main() {
   // File 2: In Repro (Active)
   const file2 = await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0002' },
-    update: {},
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
     create: {
       fileNo: 'REP-2026-0002',
       customerName: 'XYZ Plastik Ltd.',
@@ -318,6 +347,9 @@ async function main() {
       assignedDesignerId: userMap.grafiker1.id,
       currentDepartmentId: deptMap.REPRO.id,
       currentLocationSlotId: slotMap.R1.id,
+      fileTypeId: genelFileType.id,
+      difficultyLevel: 3,
+      difficultyWeight: 1.0,
       priority: Priority.HIGH,
     },
   });
@@ -334,7 +366,7 @@ async function main() {
   // File 3: Awaiting Assignment (High Priority)
   await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0003' },
-    update: {},
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
     create: {
       fileNo: 'REP-2026-0003',
       customerName: 'DEF Gıda San.',
@@ -348,6 +380,9 @@ async function main() {
       status: FileStatus.AWAITING_ASSIGNMENT,
       currentDepartmentId: deptMap.ONREPRO.id,
       currentLocationSlotId: slotMap.A2.id,
+      fileTypeId: genelFileType.id,
+      difficultyLevel: 3,
+      difficultyWeight: 1.0,
       priority: Priority.HIGH,
     },
   });
@@ -355,7 +390,7 @@ async function main() {
   // File 4: Customer Approval waiting
   const file4 = await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0004' },
-    update: {},
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
     create: {
       fileNo: 'REP-2026-0004',
       customerName: 'GHI Kozmetik',
@@ -370,6 +405,9 @@ async function main() {
       assignedDesignerId: userMap.grafiker2.id,
       currentDepartmentId: deptMap.CUSTOMER.id,
       currentLocationSlotId: slotMap.A5.id,
+      fileTypeId: genelFileType.id,
+      difficultyLevel: 3,
+      difficultyWeight: 1.0,
       requiresApproval: true,
       priority: Priority.URGENT,
     },
@@ -387,7 +425,7 @@ async function main() {
   // File 5: In Quality
   const file5 = await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0005' },
-    update: {},
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
     create: {
       fileNo: 'REP-2026-0005',
       customerName: 'JKL Tekstil',
@@ -402,6 +440,9 @@ async function main() {
       assignedDesignerId: userMap.grafiker3.id,
       currentDepartmentId: deptMap.KALITE.id,
       currentLocationSlotId: slotMap.Q1.id,
+      fileTypeId: genelFileType.id,
+      difficultyLevel: 3,
+      difficultyWeight: 1.0,
       pendingTakeover: true,
       requiresApproval: false,
       priority: Priority.NORMAL,
@@ -411,7 +452,7 @@ async function main() {
   // File 6: Completed (Sent to Production)
   await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0006' },
-    update: {},
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
     create: {
       fileNo: 'REP-2026-0006',
       customerName: 'MNO Kimya',
@@ -426,6 +467,9 @@ async function main() {
       assignedDesignerId: userMap.grafiker1.id,
       currentDepartmentId: deptMap.KOLAJ.id,
       currentLocationSlotId: null,
+      fileTypeId: genelFileType.id,
+      difficultyLevel: 3,
+      difficultyWeight: 1.0,
       priority: Priority.NORMAL,
       closedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
     },
