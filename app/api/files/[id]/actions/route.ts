@@ -12,9 +12,10 @@ import {
   directToQuality,
   sendToProduction,
 } from '@/lib/services/workflow.service';
+import { addNote } from '@/lib/services/note.service';
 import { canPerformAction } from '@/lib/rbac';
 import { userHasActiveTimer } from '@/lib/services/timer.service';
-import { assignFileSchema, takeoverSchema, nokNoteSchema, restartMgSchema, simpleActionSchema } from '@/lib/validations';
+import { assignFileSchema, takeoverSchema, nokNoteSchema, restartMgSchema, simpleActionSchema, addNoteActionSchema } from '@/lib/validations';
 
 export async function POST(
   request: NextRequest,
@@ -122,6 +123,23 @@ export async function POST(
       case 'SEND_TO_PRODUCTION': {
         const validated = simpleActionSchema.parse(data);
         result = await sendToProduction(params.id, session.user.id, session.user.departmentId, validated.note);
+        break;
+      }
+
+      case 'ADD_NOTE': {
+        const validated = addNoteActionSchema.parse(data);
+        if (!session.user.departmentId) {
+          return NextResponse.json(
+            { success: false, error: { code: 'VALIDATION_ERROR', message: 'Kullanıcı departmana atanmamış' } },
+            { status: 422 }
+          );
+        }
+        result = await addNote(
+          params.id,
+          session.user.id,
+          session.user.departmentId,
+          validated.note
+        );
         break;
       }
 

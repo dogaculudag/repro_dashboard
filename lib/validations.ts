@@ -70,6 +70,13 @@ export const simpleActionSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+export const addNoteActionSchema = z.object({
+  note: z
+    .string()
+    .min(1, 'Not zorunludur')
+    .max(5000, 'Not en fazla 5000 karakter olabilir'),
+});
+
 // Work session schemas
 export const startWorkSchema = z.object({
   fileId: z.string().uuid('Geçersiz dosya ID'),
