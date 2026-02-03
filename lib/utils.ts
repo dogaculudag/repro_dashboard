@@ -38,6 +38,11 @@ export function formatDuration(seconds: number): string {
   return `${secs}sn`;
 }
 
+/** Dakika cinsinden süreyi okunabilir metne (örn. "2s 15d") */
+export function formatDurationFromMinutes(totalMinutes: number): string {
+  return formatDuration(totalMinutes * 60);
+}
+
 export function formatDurationShort(seconds: number): string {
   if (seconds < 0) seconds = 0;
   

@@ -70,6 +70,21 @@ export const simpleActionSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+// Work session schemas
+export const startWorkSchema = z.object({
+  fileId: z.string().uuid('Geçersiz dosya ID'),
+});
+export const changeFileSchema = z.object({
+  fileId: z.string().uuid('Geçersiz dosya ID'),
+});
+export const workSessionReportQuerySchema = z.object({
+  period: z.enum(['today', 'week', 'month']).optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  userId: z.string().uuid().optional(),
+  departmentId: z.string().uuid().optional(),
+});
+
 // User schemas
 export const createUserSchema = z.object({
   username: z

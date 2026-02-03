@@ -40,6 +40,13 @@ const ROLE_DEPARTMENT_MAP: Record<Role, string> = {
 };
 
 /**
+ * Check if session user has one of the given roles
+ */
+export function hasRole(user: SessionUser, roles: Role[]): boolean {
+  return roles.includes(user.role);
+}
+
+/**
  * Check if a role has a specific permission
  */
 export function hasPermission(role: Role, permission: Permission): boolean {

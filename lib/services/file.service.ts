@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { FileStatus, Priority, Prisma } from '@prisma/client';
 import { createAuditLog } from './audit.service';
 import { startTimer, stopActiveTimerForFile, getActiveTimer } from './timer.service';
+import { startWork, stopWork, getFileWorkerBreakdown } from './work-session.service';
 import type { CreateFileInput, UpdateFileInput, FileQueryInput } from '@/lib/validations';
 import { calculateElapsedSeconds } from '@/lib/utils';
 
@@ -90,7 +91,9 @@ export async function getFileById(id: string) {
 
   // Get active timer
   const activeTimer = await getActiveTimer(id);
-  
+  // Çalışan bazlı süre: bu dosyada kim ne kadar çalıştı (WorkSession modeli yoksa boş dizi)
+  const workerBreakdown = await getFileWorkerBreakdown(id).catch(() => ({ byUser: [] }));
+
   return {
     ...file,
     activeTimer: activeTimer ? {
@@ -100,6 +103,7 @@ export async function getFileById(id: string) {
       startTime: activeTimer.startTime,
       elapsedSeconds: calculateElapsedSeconds(activeTimer.startTime),
     } : null,
+    workerBreakdown: workerBreakdown.byUser ?? [],
   };
 }
 
@@ -391,6 +395,8 @@ export async function takeoverFile(
 
   // Start new timer
   await startTimer(fileId, userDepartmentId, userId);
+  // Çalışan bazlı takip: bu kullanıcı bu dosyada çalışmaya başladı
+  await startWork(userId, fileId);
 
   // Create audit log
   await createAuditLog({

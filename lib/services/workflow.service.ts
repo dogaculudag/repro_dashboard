@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { FileStatus } from '@prisma/client';
 import { createAuditLog } from './audit.service';
 import { startTimer, stopActiveTimerForFile } from './timer.service';
+import { stopWork } from './work-session.service';
 
 /**
  * Request approval - Designer sends to Önrepro
@@ -21,8 +22,9 @@ export async function requestApproval(
   if (file.assignedDesignerId !== userId) throw new Error('Bu dosya size atanmamış');
   if (!file.requiresApproval) throw new Error('Bu dosya onay gerektirmiyor');
 
-  // Stop current timer
+  // Stop current timer and work session (dosya departmandan çıkıyor)
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Get Önrepro department
   const onreproDept = await prisma.department.findUnique({ where: { code: 'ONREPRO' } });
@@ -75,8 +77,9 @@ export async function sendToCustomer(
   if (!file) throw new Error('Dosya bulunamadı');
   if (file.status !== FileStatus.APPROVAL_PREP) throw new Error('Dosya uygun durumda değil');
 
-  // Stop current timer
+  // Stop current timer and work session
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Get Customer department (virtual)
   const customerDept = await prisma.department.findUnique({ where: { code: 'CUSTOMER' } });
@@ -132,8 +135,9 @@ export async function customerOk(
   if (!file) throw new Error('Dosya bulunamadı');
   if (file.status !== FileStatus.CUSTOMER_APPROVAL) throw new Error('Dosya uygun durumda değil');
 
-  // Stop customer timer
+  // Stop customer timer and work session
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Get Quality department
   const kaliteDept = await prisma.department.findUnique({ where: { code: 'KALITE' } });
@@ -187,8 +191,9 @@ export async function customerNok(
   if (file.status !== FileStatus.CUSTOMER_APPROVAL) throw new Error('Dosya uygun durumda değil');
   if (!file.assignedDesignerId) throw new Error('Dosyaya atanmış tasarımcı yok');
 
-  // Stop customer timer
+  // Stop customer timer and work session
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Get Repro department
   const reproDept = await prisma.department.findUnique({ where: { code: 'REPRO' } });
@@ -240,8 +245,9 @@ export async function restartMg(
   if (!file) throw new Error('Dosya bulunamadı');
   if (file.status !== FileStatus.CUSTOMER_APPROVAL) throw new Error('Dosya uygun durumda değil');
 
-  // Stop customer timer
+  // Stop customer timer and work session
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Get Önrepro department
   const onreproDept = await prisma.department.findUnique({ where: { code: 'ONREPRO' } });
@@ -302,8 +308,9 @@ export async function qualityOk(
   if (!file) throw new Error('Dosya bulunamadı');
   if (file.status !== FileStatus.IN_QUALITY) throw new Error('Dosya uygun durumda değil');
 
-  // Stop quality timer
+  // Stop quality timer and work session
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Get Kolaj department
   const kolajDept = await prisma.department.findUnique({ where: { code: 'KOLAJ' } });
@@ -357,8 +364,9 @@ export async function qualityNok(
   if (file.status !== FileStatus.IN_QUALITY) throw new Error('Dosya uygun durumda değil');
   if (!file.assignedDesignerId) throw new Error('Dosyaya atanmış tasarımcı yok');
 
-  // Stop quality timer
+  // Stop quality timer and work session
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Get Repro department
   const reproDept = await prisma.department.findUnique({ where: { code: 'REPRO' } });
@@ -411,8 +419,9 @@ export async function directToQuality(
   if (file.assignedDesignerId !== userId) throw new Error('Bu dosya size atanmamış');
   if (file.requiresApproval) throw new Error('Bu dosya onay gerektiriyor');
 
-  // Stop current timer
+  // Stop current timer and work session
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Get Kalite department
   const kaliteDept = await prisma.department.findUnique({ where: { code: 'KALITE' } });
@@ -465,8 +474,9 @@ export async function sendToProduction(
   if (!file) throw new Error('Dosya bulunamadı');
   if (file.status !== FileStatus.IN_KOLAJ) throw new Error('Dosya uygun durumda değil');
 
-  // Stop kolaj timer
+  // Stop kolaj timer and work session
   await stopActiveTimerForFile(fileId);
+  await stopWork(userId).catch(() => {});
 
   // Update file - terminal state
   const updatedFile = await prisma.file.update({

@@ -16,10 +16,11 @@ import {
   ACTION_LABELS,
   formatDisplayDate,
   formatDuration,
+  formatDurationFromMinutes,
   calculateElapsedSeconds,
 } from '@/lib/utils';
 import { FileActions } from '@/components/files/file-actions';
-import { ArrowLeft, MapPin, User, Clock, Building2 } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Clock, Building2, Users } from 'lucide-react';
 import Link from 'next/link';
 
 interface PageProps {
@@ -214,6 +215,45 @@ export default async function FileDetailPage({ params }: PageProps) {
                   </p>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bu dosyada kim ne kadar çalıştı (çalışan bazlı) */}
+      {file.workerBreakdown && file.workerBreakdown.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Bu dosyada çalışan süreleri
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Çalışan bazlı toplam süre (work session)
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2">Çalışan</th>
+                    <th className="text-left py-2">Oturum sayısı</th>
+                    <th className="text-right py-2">Toplam süre</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {file.workerBreakdown.map((entry: { fullName: string; username: string; totalMinutes: number; sessions: number }) => (
+                    <tr key={entry.username} className="border-b">
+                      <td className="py-2 font-medium">{entry.fullName}</td>
+                      <td className="py-2">{entry.sessions}</td>
+                      <td className="py-2 text-right">
+                        {formatDurationFromMinutes(entry.totalMinutes)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>

@@ -119,6 +119,8 @@ npx prisma db seed
 npm run dev
 ```
 
+**Not:** `workSession` / "Cannot read properties of undefined (reading 'findMany')" hatası alırsanız, dev sunucusunu durdurun (Ctrl+C), ardından `npx prisma generate` çalıştırıp tekrar `npm run dev` ile başlatın.
+
 ### Docker Setup (Full Stack)
 
 ```bash
