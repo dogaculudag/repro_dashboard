@@ -183,6 +183,7 @@ model File {
   revisionNo            String?    @map("revision_no") @db.VarChar(50)
   dueDate               DateTime?   @map("due_date")
   ksmData               Json?      @map("ksm_data") @db.JsonB
+  ksmTechnicalData      Json?      @map("ksm_technical_data") @db.JsonB
   status                FileStatus @default(AWAITING_ASSIGNMENT)
   assignedDesignerId    String?    @map("assigned_designer_id")
   currentDepartmentId   String     @map("current_department_id")

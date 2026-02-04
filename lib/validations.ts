@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { KSM_NORMALIZED_KEYS } from '@/lib/ksm-technical-data';
 
 // Optional date: valid date if provided
 const optionalDueDate = z
@@ -197,6 +198,24 @@ export const adminUpdateFileSchema = z.object({
   difficultyWeight: z.number().min(0).optional(),
 });
 
+// KSM Teknik Verileri – sadece normalized alanlar (bilinen key'ler kabul edilir)
+export const ksmTechnicalDataUpdateSchema = z
+  .object({
+    normalized: z.record(z.string(), z.union([z.string(), z.null()])).optional(),
+  })
+  .transform((data) => {
+    if (!data.normalized || typeof data.normalized !== 'object') return { normalized: {} as Record<string, string | null> };
+    const filtered: Record<string, string | null> = {};
+    const allowed = new Set(KSM_NORMALIZED_KEYS);
+    for (const key of Object.keys(data.normalized)) {
+      if (allowed.has(key as (typeof KSM_NORMALIZED_KEYS)[number])) {
+        const v = data.normalized[key];
+        filtered[key] = v === null || v === undefined ? null : String(v);
+      }
+    }
+    return { normalized: filtered };
+  });
+
 // Time entry schemas
 export const timeStartSchema = z.object({
   fileId: z.string().uuid('Geçersiz dosya ID'),
@@ -232,3 +251,4 @@ export type FileQueryInput = z.infer<typeof fileQuerySchema>;
 export type CreateFileTypeInput = z.infer<typeof createFileTypeSchema>;
 export type UpdateFileTypeInput = z.infer<typeof updateFileTypeSchema>;
 export type AdminUpdateFileInput = z.infer<typeof adminUpdateFileSchema>;
+export type KsmTechnicalDataUpdateInput = z.infer<typeof ksmTechnicalDataUpdateSchema>;

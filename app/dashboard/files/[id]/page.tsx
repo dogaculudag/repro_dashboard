@@ -22,6 +22,7 @@ import {
 import { FileActions } from '@/components/files/file-actions';
 import { FileTimer } from '@/components/files/file-timer';
 import { FileInfoCard } from '@/components/files/file-info-card';
+import { KsmTechnicalDataForm } from '@/components/files/ksm-technical-data-form';
 import { ArrowLeft, MapPin, User, Clock, Building2, Users } from 'lucide-react';
 import Link from 'next/link';
 
@@ -253,6 +254,14 @@ export default async function FileDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* KSM Teknik Verileri (raw + normalized, form sadece ADMIN) */}
+      <KsmTechnicalDataForm
+        fileId={file.id}
+        initialNormalized={(file.ksmTechnicalData as { normalized?: Record<string, unknown> } | null)?.normalized ?? null}
+        raw={(file.ksmTechnicalData as { raw?: Record<string, unknown> } | null)?.raw ?? null}
+        canEdit={session.user.role === 'ADMIN'}
+      />
 
       {/* Bu dosyada kim ne kadar çalıştı (çalışan bazlı) */}
       {file.workerBreakdown && file.workerBreakdown.length > 0 && (

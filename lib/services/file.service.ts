@@ -3,7 +3,8 @@ import { FileStatus, Priority, Prisma } from '@prisma/client';
 import { createAuditLog } from './audit.service';
 import { startTimer, stopActiveTimerForFile, getActiveTimer } from './timer.service';
 import { startWork, stopWork, getFileWorkerBreakdown } from './work-session.service';
-import type { CreateFileInput, UpdateFileInput, FileQueryInput, AdminUpdateFileInput } from '@/lib/validations';
+import type { CreateFileInput, UpdateFileInput, FileQueryInput, AdminUpdateFileInput, KsmTechnicalDataUpdateInput } from '@/lib/validations';
+import type { KsmTechnicalData } from '@/lib/ksm-technical-data';
 import { calculateElapsedSeconds } from '@/lib/utils';
 
 const FILE_NO_PREFIX = 'REP';
@@ -306,6 +307,37 @@ export async function adminUpdateFile(id: string, input: AdminUpdateFileInput) {
   return prisma.file.update({
     where: { id },
     data,
+    include: {
+      assignedDesigner: { select: { id: true, fullName: true, username: true } },
+      currentDepartment: { select: { id: true, name: true, code: true } },
+      fileType: { select: { id: true, name: true } },
+    },
+  });
+}
+
+/**
+ * Update only KSM technical data normalized layer (raw is never written by API).
+ */
+export async function updateKsmTechnicalDataNormalized(
+  fileId: string,
+  input: KsmTechnicalDataUpdateInput
+) {
+  const file = await prisma.file.findUnique({
+    where: { id: fileId },
+    select: { ksmTechnicalData: true },
+  });
+  if (!file) throw new Error('Dosya bulunamadı');
+
+  const current = (file.ksmTechnicalData ?? {}) as KsmTechnicalData;
+  const normalized = { ...(current.normalized ?? {}), ...input.normalized };
+  const ksmTechnicalData: KsmTechnicalData = {
+    raw: current.raw,
+    normalized: normalized as KsmTechnicalData['normalized'],
+  };
+
+  return prisma.file.update({
+    where: { id: fileId },
+    data: { ksmTechnicalData: ksmTechnicalData as unknown as Prisma.JsonObject },
     include: {
       assignedDesigner: { select: { id: true, fullName: true, username: true } },
       currentDepartment: { select: { id: true, name: true, code: true } },
