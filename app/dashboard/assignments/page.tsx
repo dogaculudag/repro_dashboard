@@ -22,7 +22,6 @@ import {
   FileText,
   CheckSquare,
   Square,
-  CheckSquareOff,
   User,
   ChevronRight,
 } from 'lucide-react';
@@ -162,7 +161,7 @@ export default function AssignmentsPage() {
             <>
               <Button variant="outline" size="sm" onClick={selectAll}>
                 {allSelected ? (
-                  <><CheckSquareOff className="mr-2 h-4 w-4" />Seçimi Kaldır</>
+                  <><Square className="mr-2 h-4 w-4" />Seçimi Kaldır</>
                 ) : (
                   <><CheckSquare className="mr-2 h-4 w-4" />Tümünü Seç ({files.length})</>
                 )}

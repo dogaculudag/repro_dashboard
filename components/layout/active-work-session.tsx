@@ -99,8 +99,8 @@ export function ActiveWorkSessionBanner() {
   const session = timeEntry ?? workSession;
   if (loading || !session) return null;
 
-  const fileId = 'fileId' in session ? session.fileId : session.fileId;
-  const file = 'file' in session ? session.file : session.file;
+  const fileId = session.fileId;
+  const file = session.file;
   const durationDisplay = timeEntry
     ? formatDuration(elapsedSeconds)
     : formatDurationFromMinutes(elapsedMinutes);

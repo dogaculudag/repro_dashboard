@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { getAllFileTypes, createFileType } from '@/lib/services/file-type.service';
 import { createFileTypeSchema } from '@/lib/validations';
@@ -50,9 +51,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data });
   } catch (e: unknown) {
     console.error('POST /api/admin/file-types error:', e);
-    if (e && typeof e === 'object' && 'name' in e && (e as { name: string }).name === 'ZodError') {
+    if (e instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Geçersiz veri', details: (e as { flatten: () => unknown }).flatten?.() } },
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Geçersiz veri', details: e.flatten() } },
         { status: 422 }
       );
     }

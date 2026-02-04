@@ -254,10 +254,14 @@ export async function updateFile(
 export async function adminUpdateFile(id: string, input: AdminUpdateFileInput) {
   const data: Prisma.FileUpdateInput = {};
   if (input.assignedUserId !== undefined) {
-    data.assignedDesignerId = input.assignedUserId;
+    data.assignedDesigner = input.assignedUserId
+      ? { connect: { id: input.assignedUserId } }
+      : { disconnect: true };
   }
   if (input.fileTypeId !== undefined) {
-    data.fileTypeId = input.fileTypeId;
+    data.fileType = input.fileTypeId
+      ? { connect: { id: input.fileTypeId } }
+      : { disconnect: true };
   }
   if (input.difficultyLevel !== undefined) {
     data.difficultyLevel = input.difficultyLevel;

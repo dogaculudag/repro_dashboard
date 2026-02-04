@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { getFileTypeById, updateFileType, deleteFileType } from '@/lib/services/file-type.service';
 import { updateFileTypeSchema } from '@/lib/validations';
@@ -64,9 +65,9 @@ export async function PATCH(
     return NextResponse.json({ success: true, data });
   } catch (e: unknown) {
     console.error('PATCH /api/admin/file-types/[id] error:', e);
-    if (e && typeof e === 'object' && 'name' in e && (e as { name: string }).name === 'ZodError') {
+    if (e instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Geçersiz veri', details: (e as { flatten: () => unknown }).flatten?.() } },
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Geçersiz veri', details: e.flatten() } },
         { status: 422 }
       );
     }
