@@ -475,6 +475,157 @@ async function main() {
     },
   });
 
+  // ========================================
+  // 7–40: Extra sample files for testing (34 more files)
+  // ========================================
+  const customers = [
+    { name: 'PQR Ambalaj', no: 'CUST-007' },
+    { name: 'STU Medikal', no: 'CUST-008' },
+    { name: 'VWX Otomotiv', no: 'CUST-009' },
+    { name: 'YZA İlaç San.', no: 'CUST-010' },
+    { name: 'BCD Tekstil', no: 'CUST-011' },
+    { name: 'EFG Elektronik', no: 'CUST-012' },
+    { name: 'HIJ Gıda', no: 'CUST-013' },
+    { name: 'KLM Mobilya', no: 'CUST-014' },
+    { name: 'NOP Boya', no: 'CUST-015' },
+    { name: 'QRS Seramik', no: 'CUST-016' },
+    { name: 'TUV Temizlik', no: 'CUST-017' },
+    { name: 'WXY Tarım', no: 'CUST-018' },
+    { name: 'ZAB İnşaat', no: 'CUST-019' },
+    { name: 'CDE Perakende', no: 'CUST-020' },
+    { name: 'FGH Otel', no: 'CUST-021' },
+    { name: 'IJK Spor', no: 'CUST-022' },
+    { name: 'LMN Kitap', no: 'CUST-023' },
+    { name: 'OPQ Petrol', no: 'CUST-024' },
+    { name: 'RST Cam', no: 'CUST-025' },
+    { name: 'UVW Deri', no: 'CUST-026' },
+    { name: 'XYZ Bahçe', no: 'CUST-027' },
+    { name: 'AAB Tekstil 2', no: 'CUST-028' },
+    { name: 'BCC Kozmetik 2', no: 'CUST-029' },
+    { name: 'CDD Ambalaj 2', no: 'CUST-030' },
+    { name: 'DEE Plastik 2', no: 'CUST-031' },
+    { name: 'EFF Gıda 2', no: 'CUST-032' },
+    { name: 'FGG Kimya 2', no: 'CUST-033' },
+    { name: 'GHH Medikal 2', no: 'CUST-034' },
+    { name: 'HII İlaç 2', no: 'CUST-035' },
+    { name: 'IJJ Elektronik 2', no: 'CUST-036' },
+    { name: 'JKK Otomotiv 2', no: 'CUST-037' },
+    { name: 'KLL Seramik 2', no: 'CUST-038' },
+    { name: 'LMM Boya 2', no: 'CUST-039' },
+    { name: 'MNN Mobilya 2', no: 'CUST-040' },
+  ];
+
+  const statusConfigs: Array<{
+    status: FileStatus;
+    departmentCode: keyof typeof deptMap;
+    slotCode: string | null;
+    assignDesigner?: boolean;
+    priority: Priority;
+    withTimer?: boolean;
+    withNote?: boolean;
+  }> = [
+    { status: FileStatus.AWAITING_ASSIGNMENT, departmentCode: 'ONREPRO', slotCode: 'A3', assignDesigner: false, priority: Priority.NORMAL },
+    { status: FileStatus.ASSIGNED, departmentCode: 'ONREPRO', slotCode: 'A4', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.IN_REPRO, departmentCode: 'REPRO', slotCode: 'R2', assignDesigner: true, priority: Priority.HIGH, withTimer: true },
+    { status: FileStatus.IN_REPRO, departmentCode: 'REPRO', slotCode: 'R3', assignDesigner: true, priority: Priority.NORMAL, withTimer: true },
+    { status: FileStatus.APPROVAL_PREP, departmentCode: 'REPRO', slotCode: 'R4', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.CUSTOMER_APPROVAL, departmentCode: 'CUSTOMER', slotCode: 'A6', assignDesigner: true, priority: Priority.URGENT, withNote: true },
+    { status: FileStatus.REVISION_REQUIRED, departmentCode: 'REPRO', slotCode: 'R5', assignDesigner: true, priority: Priority.HIGH },
+    { status: FileStatus.IN_QUALITY, departmentCode: 'KALITE', slotCode: 'Q2', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.IN_QUALITY, departmentCode: 'KALITE', slotCode: 'Q3', assignDesigner: true, priority: Priority.HIGH },
+    { status: FileStatus.IN_KOLAJ, departmentCode: 'KOLAJ', slotCode: 'K1', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.IN_KOLAJ, departmentCode: 'KOLAJ', slotCode: 'K2', assignDesigner: true, priority: Priority.LOW },
+    { status: FileStatus.SENT_TO_PRODUCTION, departmentCode: 'KOLAJ', slotCode: null, assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.AWAITING_ASSIGNMENT, departmentCode: 'ONREPRO', slotCode: 'A7', assignDesigner: false, priority: Priority.LOW },
+    { status: FileStatus.AWAITING_ASSIGNMENT, departmentCode: 'ONREPRO', slotCode: 'A8', assignDesigner: false, priority: Priority.HIGH },
+    { status: FileStatus.IN_REPRO, departmentCode: 'REPRO', slotCode: 'R6', assignDesigner: true, priority: Priority.NORMAL, withTimer: true },
+    { status: FileStatus.IN_REPRO, departmentCode: 'REPRO', slotCode: 'R7', assignDesigner: true, priority: Priority.LOW, withTimer: true },
+    { status: FileStatus.CUSTOMER_APPROVAL, departmentCode: 'CUSTOMER', slotCode: 'A9', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.IN_QUALITY, departmentCode: 'KALITE', slotCode: 'Q4', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.IN_KOLAJ, departmentCode: 'KOLAJ', slotCode: 'K3', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.SENT_TO_PRODUCTION, departmentCode: 'KOLAJ', slotCode: null, assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.AWAITING_ASSIGNMENT, departmentCode: 'ONREPRO', slotCode: 'A10', assignDesigner: false, priority: Priority.URGENT },
+    { status: FileStatus.IN_REPRO, departmentCode: 'REPRO', slotCode: 'R8', assignDesigner: true, priority: Priority.HIGH, withTimer: true },
+    { status: FileStatus.IN_REPRO, departmentCode: 'REPRO', slotCode: 'R9', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.IN_QUALITY, departmentCode: 'KALITE', slotCode: 'Q5', assignDesigner: true, priority: Priority.LOW },
+    { status: FileStatus.IN_KOLAJ, departmentCode: 'KOLAJ', slotCode: 'K4', assignDesigner: true, priority: Priority.HIGH },
+    { status: FileStatus.SENT_TO_PRODUCTION, departmentCode: 'KOLAJ', slotCode: null, assignDesigner: true, priority: Priority.LOW },
+    { status: FileStatus.AWAITING_ASSIGNMENT, departmentCode: 'ONREPRO', slotCode: 'A1', assignDesigner: false, priority: Priority.NORMAL },
+    { status: FileStatus.ASSIGNED, departmentCode: 'ONREPRO', slotCode: 'A2', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.IN_REPRO, departmentCode: 'REPRO', slotCode: 'R10', assignDesigner: true, priority: Priority.URGENT, withTimer: true },
+    { status: FileStatus.CUSTOMER_APPROVAL, departmentCode: 'CUSTOMER', slotCode: 'A5', assignDesigner: true, priority: Priority.HIGH },
+    { status: FileStatus.IN_KOLAJ, departmentCode: 'KOLAJ', slotCode: 'K5', assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.SENT_TO_PRODUCTION, departmentCode: 'KOLAJ', slotCode: null, assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.SENT_TO_PRODUCTION, departmentCode: 'KOLAJ', slotCode: null, assignDesigner: true, priority: Priority.NORMAL },
+    { status: FileStatus.SENT_TO_PRODUCTION, departmentCode: 'KOLAJ', slotCode: null, assignDesigner: true, priority: Priority.HIGH },
+    { status: FileStatus.AWAITING_ASSIGNMENT, departmentCode: 'ONREPRO', slotCode: 'A3', assignDesigner: false, priority: Priority.LOW },
+    { status: FileStatus.IN_REPRO, departmentCode: 'REPRO', slotCode: 'R1', assignDesigner: true, priority: Priority.NORMAL, withTimer: true },
+  ];
+
+  const designers = [userMap.grafiker1.id, userMap.grafiker2.id, userMap.grafiker3.id];
+  const ksmPresets = [
+    { width: 800, height: 600, colors: ['CMYK'], cylinder: 'C-080' },
+    { width: 1000, height: 700, colors: ['Cyan', 'Magenta', 'Yellow', 'Black'], cylinder: 'C-100' },
+    { width: 1200, height: 800, colors: ['Pantone 485', 'Black'], cylinder: 'C-120' },
+    { width: 600, height: 400, colors: ['Spot Orange', 'Black'], cylinder: 'C-060' },
+    { width: 1500, height: 1000, colors: ['CMYK', 'Spot'], cylinder: 'C-150' },
+  ];
+
+  const createdFileIds: string[] = [];
+
+  for (let i = 0; i < 34; i++) {
+    const num = i + 7;
+    const fileNo = `REP-2026-${String(num).padStart(4, '0')}`;
+    const cust = customers[i];
+    const config = statusConfigs[i % statusConfigs.length];
+    const ksm = ksmPresets[i % ksmPresets.length];
+    const designerId = config.assignDesigner ? designers[i % designers.length] : null;
+    const slotId = config.slotCode ? slotMap[config.slotCode]?.id : null;
+
+    const f = await prisma.file.upsert({
+      where: { fileNo },
+      update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
+      create: {
+        fileNo,
+        customerName: cust.name,
+        customerNo: cust.no,
+        ksmData: ksm,
+        status: config.status,
+        assignedDesignerId: designerId,
+        currentDepartmentId: deptMap[config.departmentCode].id,
+        currentLocationSlotId: slotId,
+        fileTypeId: genelFileType.id,
+        difficultyLevel: 2 + (i % 3),
+        difficultyWeight: 0.8 + (i % 5) * 0.1,
+        priority: config.priority,
+        requiresApproval: config.status === FileStatus.CUSTOMER_APPROVAL ? i % 2 === 0 : false,
+        closedAt: config.status === FileStatus.SENT_TO_PRODUCTION ? new Date(Date.now() - (i + 1) * 60 * 60 * 1000) : undefined,
+      },
+    });
+    createdFileIds.push(f.id);
+
+    if (config.withTimer && f.id && designerId) {
+      await prisma.timer.create({
+        data: {
+          fileId: f.id,
+          departmentId: deptMap[config.departmentCode].id,
+          userId: designerId,
+          startTime: new Date(Date.now() - (i + 1) * 60 * 60 * 1000),
+        },
+      });
+    }
+    if (config.withNote && f.id && designerId) {
+      await prisma.note.create({
+        data: {
+          fileId: f.id,
+          userId: designerId,
+          departmentId: deptMap[config.departmentCode].id,
+          message: `Test notu: ${fileNo} - ${config.status} durumunda.`,
+        },
+      });
+    }
+  }
+
   // Add some notes
   await prisma.note.createMany({
     data: [
@@ -493,7 +644,7 @@ async function main() {
     ],
   });
 
-  console.log('✅ Created sample files with timers and notes');
+  console.log(`✅ Created 40 sample files (6 detailed + 34 extra) with timers and notes`);
 
   console.log('');
   console.log('🎉 Seed completed successfully!');

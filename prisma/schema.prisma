@@ -177,6 +177,11 @@ model File {
   fileNo                String     @unique @map("file_no") @db.VarChar(50)
   customerName          String     @map("customer_name") @db.VarChar(200)
   customerNo            String?    @map("customer_no") @db.VarChar(50)
+  sapNumber             String?    @map("sap_number") @db.VarChar(50)
+  orderName             String?    @map("order_name") @db.VarChar(200)
+  designNo              String?    @map("design_no") @db.VarChar(50)
+  revisionNo            String?    @map("revision_no") @db.VarChar(50)
+  dueDate               DateTime?   @map("due_date")
   ksmData               Json?      @map("ksm_data") @db.JsonB
   status                FileStatus @default(AWAITING_ASSIGNMENT)
   assignedDesignerId    String?    @map("assigned_designer_id")

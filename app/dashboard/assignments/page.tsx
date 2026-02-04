@@ -44,15 +44,15 @@ export default function AssignmentsPage() {
   const loadData = async () => {
     try {
       const [filesRes, designersRes] = await Promise.all([
-        fetch('/api/files?status=AWAITING_ASSIGNMENT'),
+        fetch('/api/assignments/pool'),
         fetch('/api/users/designers'),
       ]);
 
       const filesData = await filesRes.json();
       const designersData = await designersRes.json();
 
-      if (filesData.success) setFiles(filesData.data);
-      if (designersData.success) setDesigners(designersData.data);
+      if (filesData.success) setFiles(filesData.data ?? []);
+      if (designersData.success) setDesigners(designersData.data ?? []);
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -83,13 +83,13 @@ export default function AssignmentsPage() {
   const allSelected = files.length > 0 && selectedFiles.length === files.length;
   const someSelected = selectedFiles.length > 0;
 
-  const handleQuickAssign = async (fileId: string, designerId: string) => {
+  const handleQuickAssign = async (fileId: string, assigneeId: string) => {
     setAssigningFileId(fileId);
     try {
-      const response = await fetch(`/api/files/${fileId}/actions`, {
+      const response = await fetch('/api/assignments/single', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'ASSIGN', designerId }),
+        body: JSON.stringify({ fileId, assigneeId }),
       });
       const data = await response.json();
       if (!data.success) throw new Error(data.error?.message || 'Atama başarısız');
@@ -114,12 +114,12 @@ export default function AssignmentsPage() {
     }
     setLoading(true);
     try {
-      const response = await fetch('/api/files/assign-bulk', {
+      const response = await fetch('/api/assignments/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileIds: selectedFiles,
-          designerId: selectedDesigner,
+          assigneeId: selectedDesigner,
           note: note.trim() || undefined,
         }),
       });
@@ -264,7 +264,7 @@ export default function AssignmentsPage() {
                         ) : (
                           <span className="flex items-center gap-2 text-muted-foreground">
                             <User className="h-4 w-4" />
-                            Grafiker seç – Hızlı ata
+                            Grafiker seç
                           </span>
                         )}
                       </SelectTrigger>
@@ -310,10 +310,10 @@ export default function AssignmentsPage() {
                 </ul>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Tasarımcı *</label>
+                <label className="text-sm font-medium">Grafiker seç *</label>
                 <Select value={selectedDesigner} onValueChange={setSelectedDesigner}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Tasarımcı seçin..." />
+                    <SelectValue placeholder="Grafiker seçin..." />
                   </SelectTrigger>
                   <SelectContent>
                     {designers.map((designer) => (

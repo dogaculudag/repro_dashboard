@@ -6,6 +6,26 @@ import { startWork, stopWork, getFileWorkerBreakdown } from './work-session.serv
 import type { CreateFileInput, UpdateFileInput, FileQueryInput, AdminUpdateFileInput } from '@/lib/validations';
 import { calculateElapsedSeconds } from '@/lib/utils';
 
+const FILE_NO_PREFIX = 'REP';
+const FILE_NO_YEAR = new Date().getFullYear();
+
+/**
+ * Generate next file number in format REP-YYYY-NNNN
+ */
+export async function getNextFileNo(): Promise<string> {
+  const prefix = `${FILE_NO_PREFIX}-${FILE_NO_YEAR}-`;
+  const files = await prisma.file.findMany({
+    where: { fileNo: { startsWith: prefix } },
+    select: { fileNo: true },
+    orderBy: { fileNo: 'desc' },
+    take: 1,
+  });
+  const nextNum = files.length === 0
+    ? 1
+    : (parseInt(files[0].fileNo.replace(prefix, ''), 10) || 0) + 1;
+  return `${prefix}${String(nextNum).padStart(4, '0')}`;
+}
+
 /**
  * Create a new file
  */
@@ -27,11 +47,20 @@ export async function createFile(
     where: { name: 'GENEL' },
   });
 
+  const fileNo = input.fileNo?.trim()
+    ? input.fileNo.trim()
+    : await getNextFileNo();
+
   const file = await prisma.file.create({
     data: {
-      fileNo: input.fileNo,
+      fileNo,
       customerName: input.customerName,
       customerNo: input.customerNo,
+      sapNumber: input.sapNumber ?? undefined,
+      orderName: input.orderName ?? undefined,
+      designNo: input.designNo ?? undefined,
+      revisionNo: input.revisionNo ?? undefined,
+      dueDate: input.dueDate ?? undefined,
       ksmData: input.ksmData ?? Prisma.JsonNull,
       status: FileStatus.AWAITING_ASSIGNMENT,
       currentDepartmentId: onreproDept.id,
@@ -224,6 +253,11 @@ export async function updateFile(
 
   if (input.customerName) data.customerName = input.customerName;
   if (input.customerNo !== undefined) data.customerNo = input.customerNo;
+  if (input.sapNumber !== undefined) data.sapNumber = input.sapNumber;
+  if (input.orderName !== undefined) data.orderName = input.orderName;
+  if (input.designNo !== undefined) data.designNo = input.designNo;
+  if (input.revisionNo !== undefined) data.revisionNo = input.revisionNo;
+  if (input.dueDate !== undefined) data.dueDate = input.dueDate;
   if (input.ksmData !== undefined) data.ksmData = input.ksmData ?? Prisma.JsonNull;
   if (input.locationSlotId) data.currentLocationSlot = { connect: { id: input.locationSlotId } };
   if (input.priority) data.priority = input.priority as Priority;

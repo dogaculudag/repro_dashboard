@@ -358,6 +358,21 @@ curl -s -b cookies.txt "http://localhost:3000/api/time/my-active"
 curl -s -b cookies.txt "http://localhost:3000/api/admin/analytics/users?from=2025-01-01&to=2025-02-03"
 ```
 
+### Dosya Bilgileri + Atama Havuzu
+
+**Yeni endpointler**
+- `GET /api/assignments/pool` — Atama bekleyen dosyaları döner (status AWAITING_ASSIGNMENT). Yetki: `file:assign`.
+- `POST /api/assignments/bulk` — Toplu atama. Body: `{ fileIds: string[], assigneeId: string, note?: string }`. Seçili dosyaların tümünü aynı grafikere atar. Response: `successCount`, `failCount`, `results`, `skippedIds`.
+- `POST /api/assignments/single` — Tekil atama. Body: `{ fileId: string, assigneeId: string }`.
+- `GET /api/files/customers?q=...` — Müşteri autocomplete için distinct customerName listesi.
+- `GET /api/files/next-file-no` — Sonraki otomatik dosya numarası (örn. REP-2026-0001). Yetki: `file:create`.
+
+**Toplu ve tekil atama mantığı**
+- Atama havuzu: `AWAITING_ASSIGNMENT` durumundaki dosyalar listelenir. Admin (veya `file:assign` yetkisi olan roller) havuzu görür.
+- Toplu atama: Birden fazla dosya seçilip "Toplu Ata" ile aynı grafikere atanır; atanan dosyalar havuzdan düşer. Bir veya daha fazla dosya atanamazsa response içinde `failCount`, `results` ve `skippedIds` ile bilgi verilir.
+- Tekil atama: Her satırdaki "Grafiker seç" dropdown ile tek dosya atanır; atama sonrası o dosya listeden kalkar.
+- Atama işlemi mevcut `File.assignedDesignerId` ve `File.status` (ASSIGNED) güncellemesi ile yapılır; ayrı Assignment tablosu kullanılmaz.
+
 ---
 
 ## 🗺️ Roadmap

@@ -1,18 +1,36 @@
 import { z } from 'zod';
 
+// Optional date: valid date if provided
+const optionalDueDate = z
+  .union([z.string(), z.date()])
+  .optional()
+  .nullable()
+  .transform((val) => {
+    if (val == null || val === '') return null;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? undefined : d;
+  })
+  .refine((val) => val === null || val === undefined || !isNaN((val as Date).getTime()), 'Termin tarihi geçerli bir tarih olmalıdır');
+
 // File schemas
 export const createFileSchema = z.object({
   fileNo: z
     .string()
-    .min(1, 'Dosya no zorunludur')
     .max(50, 'Dosya no en fazla 50 karakter olabilir')
-    .regex(/^[A-Z0-9-]+$/i, 'Dosya no sadece harf, rakam ve tire içerebilir'),
+    .regex(/^[A-Z0-9-]*$/i, 'Dosya no sadece harf, rakam ve tire içerebilir')
+    .optional()
+    .transform((val) => (val && val.trim() ? val.trim() : undefined)),
   customerName: z
     .string()
-    .min(1, 'Müşteri adı zorunludur')
+    .min(1, 'Müşteri zorunludur')
     .max(200, 'Müşteri adı en fazla 200 karakter olabilir')
     .transform((val) => val.trim()),
   customerNo: z.string().max(50).optional().nullable(),
+  sapNumber: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
+  orderName: z.string().max(200).optional().nullable().transform((v) => v?.trim() || null),
+  designNo: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
+  revisionNo: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
+  dueDate: optionalDueDate,
   ksmData: z.record(z.any()).optional().nullable(),
   locationSlotId: z.string().uuid('Geçersiz konum ID'),
   requiresApproval: z.boolean().default(true),
@@ -22,6 +40,11 @@ export const createFileSchema = z.object({
 export const updateFileSchema = z.object({
   customerName: z.string().min(1).max(200).optional(),
   customerNo: z.string().max(50).optional().nullable(),
+  sapNumber: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
+  orderName: z.string().max(200).optional().nullable().transform((v) => v?.trim() || null),
+  designNo: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
+  revisionNo: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
+  dueDate: optionalDueDate,
   ksmData: z.record(z.any()).optional().nullable(),
   locationSlotId: z.string().uuid().optional(),
   priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).optional(),

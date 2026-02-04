@@ -21,6 +21,7 @@ import {
 } from '@/lib/utils';
 import { FileActions } from '@/components/files/file-actions';
 import { FileTimer } from '@/components/files/file-timer';
+import { FileInfoCard } from '@/components/files/file-info-card';
 import { ArrowLeft, MapPin, User, Clock, Building2, Users } from 'lucide-react';
 import Link from 'next/link';
 
@@ -129,6 +130,25 @@ export default async function FileDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dosya Bilgileri */}
+      <FileInfoCard
+        file={{
+          id: file.id,
+          fileNo: file.fileNo,
+          customerName: file.customerName,
+          customerNo: file.customerNo,
+          sapNumber: file.sapNumber ?? null,
+          orderName: file.orderName ?? null,
+          designNo: file.designNo ?? null,
+          revisionNo: file.revisionNo ?? null,
+          dueDate: file.dueDate ?? null,
+          priority: file.priority,
+          requiresApproval: file.requiresApproval,
+          currentLocationSlotId: file.currentLocationSlotId,
+          currentLocationSlot: file.currentLocationSlot,
+        }}
+      />
 
       {/* Süre takibi (TimeEntry) */}
       <Card>
