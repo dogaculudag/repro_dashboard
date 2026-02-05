@@ -20,6 +20,7 @@ import {
   calculateElapsedSeconds,
 } from '@/lib/utils';
 import { FileActions } from '@/components/files/file-actions';
+import { FileActionButtons } from '@/components/files/file-action-buttons';
 import { FileTimer } from '@/components/files/file-timer';
 import { FileInfoCard } from '@/components/files/file-info-card';
 import { KsmTechnicalDataForm } from '@/components/files/ksm-technical-data-form';
@@ -74,6 +75,17 @@ export default async function FileDetailPage({ params }: PageProps) {
           </div>
           <p className="text-muted-foreground">{file.customerName}</p>
         </div>
+        <FileActionButtons
+          file={{
+            id: file.id,
+            assignedDesignerId: file.assignedDesignerId,
+            targetAssigneeId: file.targetAssigneeId ?? null,
+            assignedDesigner: file.assignedDesigner,
+            stage: file.stage,
+          }}
+          currentUserId={session.user.id}
+          size="default"
+        />
       </div>
 
       {/* Info Cards */}

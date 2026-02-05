@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getPreReproQueue } from '@/lib/services/file.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PreReproActions } from './pre-repro-actions';
+import { FileActionButtons } from '@/components/files/file-action-buttons';
 import Link from 'next/link';
 import { formatDisplayDate } from '@/lib/utils';
 
@@ -69,12 +69,15 @@ export default async function PreReproQueuePage() {
                       </p>
                     )}
                   </div>
-                  <PreReproActions
-                    fileId={file.id}
-                    assignedDesignerId={file.assignedDesignerId}
-                    targetAssigneeId={file.targetAssigneeId ?? null}
+                  <FileActionButtons
+                    file={{
+                      id: file.id,
+                      assignedDesignerId: file.assignedDesignerId,
+                      targetAssigneeId: file.targetAssigneeId ?? null,
+                      assignedDesigner: file.assignedDesigner,
+                      stage: file.stage != null ? String(file.stage) : undefined,
+                    }}
                     currentUserId={session.user!.id}
-                    claimedByFullName={file.assignedDesigner?.fullName}
                   />
                 </div>
               ))}
