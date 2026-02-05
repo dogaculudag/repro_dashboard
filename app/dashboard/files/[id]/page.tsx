@@ -23,6 +23,7 @@ import { FileActions } from '@/components/files/file-actions';
 import { FileActionButtons } from '@/components/files/file-action-buttons';
 import { FileTimer } from '@/components/files/file-timer';
 import { FileInfoCard } from '@/components/files/file-info-card';
+import { FileTimelineCard } from '@/components/files/file-timeline-card';
 import { KsmTechnicalDataForm } from '@/components/files/ksm-technical-data-form';
 import { ArrowLeft, MapPin, User, Clock, Building2, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -50,6 +51,10 @@ export default async function FileDetailPage({ params }: PageProps) {
 
   const hasTimer = await userHasActiveTimer(params.id, session.user.id);
   const availableActions = getAvailableActions(session.user, file, hasTimer);
+  const isOnRepro = file.currentDepartment?.code === 'ONREPRO';
+  const actionsForUi = isOnRepro
+    ? availableActions.filter((a) => a !== 'TAKEOVER')
+    : availableActions;
 
   return (
     <div className="space-y-6">
@@ -85,6 +90,7 @@ export default async function FileDetailPage({ params }: PageProps) {
           }}
           currentUserId={session.user.id}
           size="default"
+          hideClaimButton={file.currentDepartment?.code === 'ONREPRO'}
         />
       </div>
 
@@ -177,48 +183,34 @@ export default async function FileDetailPage({ params }: PageProps) {
       </Card>
 
       {/* Actions */}
-      {availableActions.length > 0 && (
+      {actionsForUi.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>İşlemler</CardTitle>
           </CardHeader>
           <CardContent>
-            <FileActions fileId={file.id} availableActions={availableActions} />
+            <FileActions fileId={file.id} availableActions={actionsForUi} />
           </CardContent>
         </Card>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Timeline */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Zaman Çizelgesi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {logs.map((log) => (
-                <div key={log.id} className="flex gap-3">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <p className="font-medium">{ACTION_LABELS[log.actionType]}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDisplayDate(log.timestamp)}
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {log.byUser.fullName}
-                      {log.toDepartment && ` → ${log.toDepartment.name}`}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {logs.length === 0 && (
-                <p className="text-muted-foreground text-center py-4">Henüz kayıt yok</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Timeline: boş title/action kayıtları gizlenir; title boş ama action varsa mapping ile doldurulur */}
+        <FileTimelineCard
+          items={logs
+            .filter(
+              (log) =>
+                log.actionType &&
+                (ACTION_LABELS[log.actionType] ?? log.actionType)
+            )
+            .map((log) => ({
+              id: log.id,
+              displayTitle: ACTION_LABELS[log.actionType] ?? log.actionType ?? '',
+              timestampFormatted: formatDisplayDate(log.timestamp),
+              byUserName: log.byUser.fullName,
+              toDepartmentName: log.toDepartment?.name ?? null,
+            }))}
+        />
 
         {/* Notes */}
         <Card>

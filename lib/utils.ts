@@ -128,4 +128,7 @@ export const ACTION_LABELS: Record<string, string> = {
   LOCATION_UPDATE: 'Konum Güncellendi',
   NOTE_ADDED: 'Not Eklendi',
   STATUS_CHANGE: 'Durum Değişti',
+  PRE_REPRO_CLAIMED: 'Devraldı',
+  PRE_REPRO_HANDED_OFF: 'Devredildi',
+  PRE_REPRO_RETURNED_TO_QUEUE: 'Kuyruğa Geri Döndü',
 };

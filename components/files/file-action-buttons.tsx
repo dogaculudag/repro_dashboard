@@ -20,12 +20,15 @@ type FileActionButtonsProps = {
   currentUserId: string;
   /** Optional: use "sm" for list/cards, default for detail header */
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  /** When true, do not show Devral button (e.g. on file detail page for Ön Repro – claim only from queue) */
+  hideClaimButton?: boolean;
 };
 
 export function FileActionButtons({
   file,
   currentUserId,
   size = 'sm',
+  hideClaimButton = false,
 }: FileActionButtonsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<'devral' | 'devret' | 'return' | null>(null);
@@ -113,6 +116,9 @@ export function FileActionButtons({
   };
 
   if (assignedDesignerId == null) {
+    if (hideClaimButton) {
+      return null;
+    }
     return (
       <Button
         onClick={handleDevral}

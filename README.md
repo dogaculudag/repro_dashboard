@@ -1,402 +1,341 @@
-# Repro Department File Tracking System (RDFTS)
+# Repro Dashboard (RDFTS)
 
-A production-ready web application for a printing cylinder engraving company's Repro department to track physical job files across departments, measure time spent per department (bottleneck analysis), and report employee performance and throughput.
+Repro departmanı için **fiziksel iş dosyalarının** departmanlar arası takibi, devir (devral/devret) kayıtları, süre ölçümü (bottleneck analizi) ve raporlama sağlayan Next.js + PostgreSQL uygulaması.
 
-## 🎯 Purpose
+## ✅ Bu README neyi garanti eder?
 
-This system solves the problem of **lost physical files** in the Repro department by:
-- Enforcing mandatory "takeover" (Devral) when receiving physical files
-- Logging every transfer with timestamps
-- Tracking time spent per department automatically
-- Providing searchable file history and current location
-- Generating performance and bottleneck reports
+Bu dosya, repodaki gerçek yapı/komutlarla uyumludur:
+- **Package manager**: `npm` (repoda `package-lock.json` var)
+- **DB**: `docker-compose.yml` içindeki `db` servisi (PostgreSQL 15)
+- **Prisma**: script’ler `package.json` içinde (`db:push`, `db:seed`, `db:migrate`, `db:studio`)
+- **Auth**: NextAuth **v4** (Credentials Provider, JWT session)
+- **Seed kullanıcıları**: `prisma/seed.ts` içinde tanımlı (aşağıda tam liste var)
 
-## 📚 Documentation
+> Not: Repoda ayrıca `backend/` (Express+SQLite) ve `frontend/` (Vite) klasörleri var; bunlar **legacy/demo**. Bu README’nin ana konusu `repro_dashboard/` kökündeki **Next.js** uygulamasıdır.
 
-All project documentation is available in the `/docs` folder:
+## 📚 Dokümantasyon
 
-| Document | Description |
-|----------|-------------|
-| [01_PRD.md](docs/01_PRD.md) | Product Requirements Document - business requirements, user stories, personas |
-| [02_TECHNICAL_DESIGN.md](docs/02_TECHNICAL_DESIGN.md) | Technical architecture, state machine, component design |
-| [03_DATABASE_SCHEMA.md](docs/03_DATABASE_SCHEMA.md) | PostgreSQL schema, Prisma models, migrations, seed data |
-| [04_API_DESIGN.md](docs/04_API_DESIGN.md) | REST API endpoints, payloads, validation rules |
-| [05_UI_DESIGN.md](docs/05_UI_DESIGN.md) | Frontend pages, wireframes, UI components |
-| [06_IMPLEMENTATION_PLAN.md](docs/06_IMPLEMENTATION_PLAN.md) | Milestones, tasks, timeline |
-| [07_TEST_PLAN.md](docs/07_TEST_PLAN.md) | Unit, integration, E2E testing strategy |
-| [08_SECURITY_NFR.md](docs/08_SECURITY_NFR.md) | Security model, non-functional requirements |
-| [09_SCOPE.md](docs/09_SCOPE.md) | MVP scope and Phase 2 roadmap |
+Detaylı tasarım/dokümanlar `docs/` altında:
 
-## 🏗️ Technology Stack
+| Dosya | Açıklama |
+|------|----------|
+| `docs/01_PRD.md` | İş gereksinimleri, user story’ler |
+| `docs/02_TECHNICAL_DESIGN.md` | Mimari, state machine, bileşen tasarımı |
+| `docs/03_DATABASE_SCHEMA.md` | PostgreSQL/Prisma şeması ve seed |
+| `docs/04_API_DESIGN.md` | API uçları, payload’lar |
+| `docs/05_UI_DESIGN.md` | Sayfalar ve UI akışları |
+| `docs/06_IMPLEMENTATION_PLAN.md` | Uygulama planı |
+| `docs/07_TEST_PLAN.md` | Test stratejisi (doküman seviyesi) |
+| `docs/08_SECURITY_NFR.md` | Güvenlik/NFR |
+| `docs/09_SCOPE.md` | Kapsam ve roadmap |
 
-| Layer | Technology |
+## 🏗️ Teknoloji yığını
+
+| Katman | Teknoloji |
 |-------|------------|
-| Frontend | Next.js 14 (App Router), React 18, TypeScript |
-| Styling | Tailwind CSS, shadcn/ui |
-| Backend | Next.js API Routes, Server Actions |
-| Database | PostgreSQL 15 |
+| UI | Next.js 14 (App Router), React 18, TypeScript |
+| Stil | Tailwind CSS, shadcn/ui |
+| Backend | Next.js Route Handlers (`app/api/...`) |
+| DB | PostgreSQL 15 |
 | ORM | Prisma 5 |
-| Authentication | NextAuth.js (Auth.js) v5 |
+| Auth | NextAuth.js v4 (Credentials) |
 | Validation | Zod |
-| Charts | Recharts |
-| Testing | Vitest, Playwright |
-| Containerization | Docker, Docker Compose |
+| Grafik | Recharts |
+| Test | Vitest |
+| Container | Docker, Docker Compose |
 
-## 🔄 Core Workflow
+## 🔄 Temel iş akışı (özet)
 
-```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│    ÖNREPRO       │────▶│     REPRO        │────▶│    CUSTOMER      │
-│  Creates File    │     │   (Designer)     │     │   APPROVAL       │
-│                  │     │                  │     │  (Virtual Dept)  │
-└──────────────────┘     └────────┬─────────┘     └────────┬─────────┘
-                                  │                        │
-                                  │◀───────── NOK ────────┘
-                                  │           (Same Designer)
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │    QUALITY       │
-                         │  (Plotter)       │
-                         └────────┬─────────┘
-                                  │
-                    ┌─────── NOK ─┴── OK ─────┐
-                    │ (Same Designer)          │
-                    ▼                          ▼
-           ┌──────────────────┐     ┌──────────────────┐
-           │     REPRO        │     │     KOLAJ        │
-           │   (Revision)     │     │   (Assembly)     │
-           └──────────────────┘     └────────┬─────────┘
-                                             │
-                                             ▼
-                                   ┌──────────────────┐
-                                   │  SENT TO         │
-                                   │  PRODUCTION      │
-                                   │  (Terminal)      │
-                                   └──────────────────┘
-```
+Özet akış:
+- Önrepro dosyayı oluşturur / kuyruğa alır
+- Repro (grafiker) çalışır, gerekiyorsa müşteri onayı (virtual departman) döngüsü olur
+- Kalite kontrol ve kolaj adımları
+- Üretime gönderilince kapanır
 
-## 👥 User Roles
+## 🧭 Yeni başlayanlar için hızlı adaptasyon
 
-| Role | Description | Key Permissions |
-|------|-------------|-----------------|
-| **Admin (Manager)** | Bahar Hanım - Full access | Assign jobs, view reports, manage users |
-| **Önrepro** | Pre-production staff | Create files, handle approval flow |
-| **Grafiker** | Repro designers | Work on assigned files only |
-| **Kalite** | Quality control | Approve/reject designs |
-| **Kolaj** | Assembly | Final prep, send to production |
+### 15 dakikada sistemi anlayın
 
-## 🚀 Quick Start
+- **Uygulamayı çalıştırın**: `.\start-local.ps1` (DB + seed + `npm run dev`)
+- **Giriş yapın**: `bahar / password123` (ADMIN)
+- **Admin akışını gezin**
+  - `Dashboard`: genel metrikler, “Atama bekliyor”
+  - `Assignments`: atama havuzu (AWAITING_ASSIGNMENT → ASSIGNED)
+  - `Files`: dosya listesi ve dosya detayına girin
+- **Dosya detayında** timeline / notlar / aksiyonlar üzerinden akışı izleyin
 
-### Prerequisites
-- Node.js 20+
-- Docker & Docker Compose
-- PostgreSQL 15 (or use Docker)
+### Kodda “nereden başlamalı?”
 
-### Development Setup
+Yeni giren birinin en hızlı kavram kazanacağı dosyalar:
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd repro-tracking
+- **Auth / session tipleri**
+  - `lib/auth.ts`: NextAuth Credentials + session/jwt alanları
+  - `app/api/auth/[...nextauth]/route.ts`: NextAuth handler
+- **Route koruması**
+  - `middleware.ts`: `/dashboard` ve `/api/*` için auth zorunluluğu + admin route guard
+- **RBAC + workflow kuralları**
+  - `lib/rbac.ts`: rol→permission + aksiyon uygunluğu + state transition doğrulama
+- **Domain servisleri**
+  - `lib/services/workflow.service.ts`: onay/kalite/üretim akış fonksiyonları
+  - `lib/services/file.service.ts`: file oluşturma/sorgulama + timer/worksession entegrasyonu
+  - `lib/services/audit.service.ts`: audit log yazımı/okunması
+- **DB modelleri**
+  - `prisma/schema.prisma`: tüm tablo/enum ilişkileri
+  - `prisma/seed.ts`: seed kullanıcılar + örnek dosyalar
 
-# Install dependencies
-npm install
+### İstek akışı (mental model)
 
-# Start database with Docker
-docker-compose up -d db
+Bu projede tipik akış şu şekilde ilerler:
 
-# Setup environment variables
-cp .env.example .env
+- **UI (Server Component / Client Component)** → `/app/dashboard/**` ve `components/**`
+- **API (Route Handler)** → `app/api/**/route.ts`
+- **Service katmanı** → `lib/services/*.ts`
+- **DB** → `lib/db.ts` (Prisma client) → Postgres
 
-# Run database migrations
-npx prisma migrate dev
+Not: Bazı dashboard sayfaları (özellikle admin metrikleri) **server component** içinde doğrudan `prisma` ile query de atıyor; “business rule” içeren işler çoğunlukla `lib/services/` altına toplanmış.
 
-# Seed the database
-npx prisma db seed
+## 🚀 Hızlı başlangıç (Windows / PowerShell)
 
-# Start development server
-npm run dev
-```
+### Gereksinimler
 
-**Not:** `workSession` / "Cannot read properties of undefined (reading 'findMany')" hatası alırsanız, dev sunucusunu durdurun (Ctrl+C), ardından `npx prisma generate` çalıştırıp tekrar `npm run dev` ile başlatın.
+- Node.js **20+**
+- Docker Desktop (önerilir, DB için)
 
-### Docker Setup (Full Stack)
+### Seçenek A (önerilir): Tek komutla başlat
 
-```bash
-# Build and start all services
-docker-compose up --build
-
-# Access the application
-open http://localhost:3000
-```
-
-### Default Login Credentials (Seed Data)
-
-| Username | Password | Role |
-|----------|----------|------|
-| bahar | password123 | Admin |
-| onrepro1 | password123 | Önrepro |
-| grafiker1 | password123 | Grafiker |      
-| kalite1 | password123 | Kalite |
-| kolaj1 | password123 | Kolaj |
-
-## 📁 Project Structure
-
-```
-├── app/                    # Next.js App Router
-│   ├── (auth)/            # Authentication pages
-│   │   └── login/
-│   ├── (dashboard)/       # Protected dashboard pages
-│   │   ├── admin/         # Admin settings
-│   │   ├── assignments/   # Assignment pool
-│   │   ├── files/         # File management
-│   │   ├── queue/         # Department queue
-│   │   └── reports/       # Reports & analytics
-│   └── api/               # API routes
-│       ├── auth/
-│       ├── files/
-│       ├── locations/
-│       ├── reports/
-│       └── users/
-├── components/            # React components
-│   ├── ui/               # shadcn/ui components
-│   ├── layout/           # Layout components
-│   ├── files/            # File-related components
-│   ├── dashboard/        # Dashboard components
-│   └── reports/          # Report components
-├── lib/                   # Core libraries
-│   ├── auth/             # Authentication & RBAC
-│   ├── db/               # Database client
-│   ├── services/         # Business logic
-│   ├── validations/      # Zod schemas
-│   └── utils/            # Utility functions
-├── prisma/                # Prisma ORM
-│   ├── schema.prisma     # Database schema
-│   ├── migrations/       # Database migrations
-│   └── seed.ts           # Seed data script
-├── tests/                 # Test files
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-├── docs/                  # Documentation
-└── docker-compose.yml     # Docker configuration
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run unit tests only
-npm run test:unit
-
-# Run integration tests
-npm run test:integration
-
-# Run E2E tests
-npm run test:e2e
-
-# Run with coverage
-npm run test:coverage
-```
-
-## 📊 Key Features
-
-### File Tracking
-- Create and search files by file number
-- Track current holder, department, and physical location
-- View complete timeline with all events and durations
-- Add notes in chronological order
-
-### Timer System
-- Automatic timer start/stop on takeover and transfer
-- Exactly one active timer per file (enforced)
-- Support for multiple timer entries per department
-- Duration calculation and reporting
-
-### Workflow Management
-- Full R100 approval loop (design → customer → quality)
-- Full R200 quality loop (quality → kolaj → production)
-- Permanent designer ownership (no reassignment on NOK)
-- MG iteration tracking for customer revisions
-
-### Reporting
-- Dashboard with real-time statistics
-- Overdue/bottleneck alerts
-- Designer throughput reports
-- Department average time analysis
-
-## 🔒 Security
-
-- Session-based authentication with secure cookies
-- Role-based access control (RBAC) at multiple layers
-- Input validation with Zod
-- SQL injection prevention via Prisma ORM
-- XSS protection with React escaping
-- CSRF protection via NextAuth
-- Comprehensive audit logging
-
-## 📋 Environment Variables
-
-```bash
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/repro_tracking"
-
-# NextAuth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key"
-
-# Optional
-LOG_LEVEL="info"
-```
-
-## 📦 Zorluk + Dosya Tipi + Süre/Performans (Implementation Summary)
-
-### Değiştirilen / Eklenen Dosyalar
-
-**Prisma & DB**
-- `prisma/schema.prisma` — FileType modeli, File’a fileTypeId, difficultyLevel, difficultyWeight, timeEntries; TimeEntry modeli; User/Department’a timeEntries.
-- `prisma/seed.ts` — GENEL dosya tipi, mevcut dosyalara fileTypeId/difficulty ataması.
-- `prisma/migrations/20260203111718_add_file_type_time_entry/migration.sql` — migration.
-
-**Servisler**
-- `lib/services/file-type.service.ts` — FileType CRUD.
-- `lib/services/time-entry.service.ts` — start/stop/active, getMyTimeSummary.
-- `lib/services/analytics.service.ts` — getUsersAnalytics (weightedScore, productivity, fileType/department kırılımı).
-- `lib/services/file.service.ts` — createFile (default fileType), getFileById (fileType include), adminUpdateFile.
-
-**Validations**
-- `lib/validations.ts` — createFileTypeSchema, updateFileTypeSchema, adminUpdateFileSchema, timeStartSchema, timeStopSchema, analyticsUsersQuerySchema, mySummaryQuerySchema, fileQuerySchema (fileTypeId, difficultyLevel).
-
-**API**
-- `app/api/admin/file-types/route.ts` — GET, POST.
-- `app/api/admin/file-types/[id]/route.ts` — GET, PATCH, DELETE.
-- `app/api/admin/files/[id]/route.ts` — PATCH (admin).
-- `app/api/time/start/route.ts` — POST.
-- `app/api/time/stop/route.ts` — POST.
-- `app/api/time/my-active/route.ts` — GET.
-- `app/api/time/my-summary/route.ts` — GET.
-- `app/api/admin/analytics/users/route.ts` — GET.
-
-**Frontend**
-- `components/layout/sidebar.tsx` — Analitik, Dosya Tipleri linkleri.
-- `app/dashboard/admin/file-types/page.tsx` — Dosya tipleri sayfası.
-- `app/dashboard/admin/file-types/file-types-client.tsx` — Liste, oluştur/düzenle/sil.
-- `app/dashboard/admin/analytics/page.tsx` — Analitik sayfası.
-- `app/dashboard/admin/analytics/analytics-client.tsx` — Tarih aralığı, kullanıcı tablosu, kırılım.
-- `app/dashboard/files/page.tsx` — fileType/difficulty/assignedUser sütunları, filtreler, FilesRow.
-- `app/dashboard/files/files-row.tsx` — Satır içi admin düzenleme (fileType, assignedUser, difficulty, weight).
-- `app/dashboard/files/[id]/page.tsx` — Süre takibi kartı, FileTimer.
-- `components/files/file-timer.tsx` — Start/Stop timer (TimeEntry).
-- `components/layout/active-work-session.tsx` — time/my-active + work-sessions/active, stop her ikisini kapatır.
-- `components/dashboard/my-summary-card.tsx` — Haftalık süre özeti (fileType kırılımı).
-- `app/dashboard/page.tsx` — MySummaryCard (çalışanlar için).
-
-**Test**
-- `vitest.config.ts` — Vitest config.
-- `lib/services/time-entry.service.test.ts` — Tek aktif TimeEntry kuralı.
-- `lib/services/analytics.service.test.ts` — weightedScore / productivity hesapları.
-
-### Çalıştırma Adımları
+PowerShell’de:
 
 ```bash
 cd repro_dashboard
-pnpm install
-pnpm prisma migrate dev    # veya: pnpm db:migrate
-pnpm prisma db seed        # veya: pnpm db:seed
-pnpm dev
+.\start-local.ps1
 ```
 
-### Endpoint Örnekleri (curl)
+Bu script şunları yapar:
+- `.env` yoksa `.env.example`’dan oluşturur
+- Docker açıksa `db`’yi başlatır
+- Prisma ile şemayı uygular (`prisma db push`)
+- Seed çalıştırır (`prisma db seed`)
+- `npm run dev` ile uygulamayı başlatır
 
-Admin token/session gerekir; tarayıcıda giriş yapıp cookie ile veya Bearer token ile istek atılabilir.
+Uygulama: `http://localhost:3000`
 
-**Dosya tipleri**
+### Seçenek B: Manuel kurulum
+
 ```bash
-# Liste
-curl -s -b cookies.txt "http://localhost:3000/api/admin/file-types"
+cd repro_dashboard
 
-# Oluştur
-curl -s -X POST -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"name":"Ambalaj","description":"Ambalaj işleri","defaultDifficultyLevel":3,"defaultDifficultyWeight":1.2}' \
-  "http://localhost:3000/api/admin/file-types"
+npm install
 
-# Güncelle
-curl -s -X PATCH -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"name":"Ambalaj","defaultDifficultyWeight":1.5}' \
-  "http://localhost:3000/api/admin/file-types/<id>"
+# DB (Docker)
+docker-compose up -d db
 
-# Sil (opsiyonel fallback)
-curl -s -X DELETE -b cookies.txt "http://localhost:3000/api/admin/file-types/<id>?fallbackFileTypeId=<genelId>"
+# .env
+copy .env.example .env
+
+# Şema + seed
+npm run db:push
+npm run db:seed
+
+# Uygulama
+npm run dev
 ```
 
-**Admin dosya güncelleme**
+## 🔐 Ortam değişkenleri (.env) + örnek credential’lar
+
+### Tam örnek `.env` (kopyala-yapıştır)
+
+> Güvenlik: Bu dosyadaki **secret** değerlerini üretimde değiştirin ve `.env`’yi repoya koymayın.
+
 ```bash
-curl -s -X PATCH -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"assignedUserId":"<userId>","fileTypeId":"<fileTypeId>","difficultyLevel":4,"difficultyWeight":1.5}' \
-  "http://localhost:3000/api/admin/files/<fileId>"
+# Database (LOCAL)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/repro_tracking"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="dev-only-change-me"
+
+# App
+NODE_ENV="development"
+
+# KSM Teknik Verileri – dış VIEW ingestion (opsiyonel)
+# Birini set etmeniz yeterli:
+# KSM_VIEW_DATABASE_URL="postgresql://user:pass@host:5432/external_db"
+# EXTERNAL_DATABASE_URL="postgresql://user:pass@host:5432/external_db"
+# KSM_VIEW_NAME="ksm_technical_view"
 ```
 
-**Süre takibi**
+### Docker ile tam stack çalıştırma
+
 ```bash
-# Başlat
-curl -s -X POST -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"fileId":"<fileId>"}' "http://localhost:3000/api/time/start"
+cd repro_dashboard
 
-# Durdur
-curl -s -X POST -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"fileId":"<fileId>"}' "http://localhost:3000/api/time/stop"
-
-# Aktif kayıt
-curl -s -b cookies.txt "http://localhost:3000/api/time/my-active"
+# Compose, aynı klasördeki `.env` dosyasını otomatik okur.
+# NEXTAUTH_SECRET set edilmezse, docker-compose varsayılan olarak "dev-secret-key" kullanır.
+docker-compose up --build
 ```
 
-**Analitik**
+Uygulama: `http://localhost:3000`
+
+Docker compose içinde app şu DB URL’i kullanır:
+- `postgresql://postgres:postgres@db:5432/repro_tracking`
+
+## 👤 Default giriş bilgileri (seed)
+
+Seed çalıştırınca (`npm run db:seed`) aşağıdaki kullanıcılar oluşur. Şifrelerin tamamı:
+
+- **Password**: `password123`
+
+| Username | Role | Not |
+|----------|------|-----|
+| `bahar` | ADMIN | Yönetici |
+| `onrepro1` | ONREPRO | Önrepro |
+| `onrepro2` | ONREPRO | Önrepro |
+| `grafiker1` | GRAFIKER | Repro grafiker |
+| `grafiker2` | GRAFIKER | Repro grafiker |
+| `grafiker3` | GRAFIKER | Repro grafiker |
+| `kalite1` | KALITE | Kalite |
+| `kolaj1` | KOLAJ | Kolaj |
+
+## 🗄️ Veritabanı / Prisma komutları
+
 ```bash
-curl -s -b cookies.txt "http://localhost:3000/api/admin/analytics/users?from=2025-01-01&to=2025-02-03"
+# Şemayı DB’ye uygula (hızlı local)
+npm run db:push
+
+# Migration tabanlı uygulama (schema değişikliklerinde)
+npm run db:migrate
+
+# Seed
+npm run db:seed
+
+# Prisma Studio
+npm run db:studio
 ```
 
-### Dosya Bilgileri + Atama Havuzu
+## 🧪 Test
 
-**Yeni endpointler**
-- `GET /api/assignments/pool` — Atama bekleyen dosyaları döner (status AWAITING_ASSIGNMENT). Yetki: `file:assign`.
-- `POST /api/assignments/bulk` — Toplu atama. Body: `{ fileIds: string[], assigneeId: string, note?: string }`. Seçili dosyaların tümünü aynı grafikere atar. Response: `successCount`, `failCount`, `results`, `skippedIds`.
-- `POST /api/assignments/single` — Tekil atama. Body: `{ fileId: string, assigneeId: string }`.
-- `GET /api/files/customers?q=...` — Müşteri autocomplete için distinct customerName listesi.
-- `GET /api/files/next-file-no` — Sonraki otomatik dosya numarası (örn. REP-2026-0001). Yetki: `file:create`.
+Bu projede test runner **Vitest**.
 
-**Toplu ve tekil atama mantığı**
-- Atama havuzu: `AWAITING_ASSIGNMENT` durumundaki dosyalar listelenir. Admin (veya `file:assign` yetkisi olan roller) havuzu görür.
-- Toplu atama: Birden fazla dosya seçilip "Toplu Ata" ile aynı grafikere atanır; atanan dosyalar havuzdan düşer. Bir veya daha fazla dosya atanamazsa response içinde `failCount`, `results` ve `skippedIds` ile bilgi verilir.
-- Tekil atama: Her satırdaki "Grafiker seç" dropdown ile tek dosya atanır; atama sonrası o dosya listeden kalkar.
-- Atama işlemi mevcut `File.assignedDesignerId` ve `File.status` (ASSIGNED) güncellemesi ile yapılır; ayrı Assignment tablosu kullanılmaz.
+```bash
+npm test
+npm run test:coverage
+```
 
----
+## 🧩 Proje yapısı (detaylı)
 
-## 🗺️ Roadmap
+```
+repro_dashboard/
+├── app/                          # Next.js App Router
+│   ├── layout.tsx                # Root layout + global css + toaster
+│   ├── page.tsx                  # Landing (varsa)
+│   ├── login/page.tsx            # Credentials login ekranı
+│   ├── dashboard/                # Korunan ekranlar (auth gerekli)
+│   │   ├── layout.tsx            # Sidebar/Header + session guard (redirect /login)
+│   │   ├── page.tsx              # Role bazlı dashboard metrikleri
+│   │   ├── files/                # Dosyalar: liste + detay + yeni kayıt
+│   │   │   ├── page.tsx
+│   │   │   ├── new/page.tsx
+│   │   │   └── [id]/page.tsx
+│   │   ├── queue/page.tsx        # Kullanıcının departman kuyruğu
+│   │   ├── queues/pre-repro/     # Özel kuyruk ekranı (pre-repro)
+│   │   ├── assignments/page.tsx  # Admin atama havuzu
+│   │   ├── reports/page.tsx      # Raporlar (admin)
+│   │   └── admin/                # Admin ekranları (settings/users/analytics/file-types)
+│   └── api/                      # Route Handlers (REST benzeri)
+│       ├── auth/[...nextauth]/   # NextAuth endpoint’leri
+│       ├── files/                # Dosya CRUD + alt aksiyon route’ları
+│       ├── assignments/          # Atama havuzu + bulk/single
+│       ├── queues/               # Queue endpoint’leri
+│       ├── time/                 # time start/stop + summary uçları
+│       ├── work-sessions/        # aktif work session vb.
+│       └── admin/                # admin-only api (analytics, file-types, admin file patch)
+├── components/                   # React bileşenleri
+│   ├── layout/                   # Sidebar/Header/Active banner
+│   ├── files/                    # Dosya detay aksiyonları + timer UI
+│   ├── dashboard/                # Dashboard kartları (örn. MySummaryCard)
+│   └── ui/                       # shadcn/ui primitive’leri + toaster
+├── lib/
+│   ├── db.ts                     # Prisma client singleton
+│   ├── auth.ts                   # NextAuth options + session typing
+│   ├── rbac.ts                   # Role/permission + action rules + transition validation
+│   ├── validations.ts            # Zod schema’lar (request payload validation)
+│   ├── utils.ts                  # Formatlar/label map’leri vb.
+│   ├── types.ts                  # Ortak type tanımları (Permission vb.)
+│   └── services/                 # Domain iş kuralları
+│       ├── file.service.ts       # file oluşturma/sorgulama + bazı aksiyonlar
+│       ├── workflow.service.ts   # approval/quality/production state değişimleri
+│       ├── timer.service.ts      # Timer (start/stop/active)
+│       ├── time-entry.service.ts # TimeEntry (ayrı time tracking katmanı)
+│       ├── work-session.service.ts
+│       ├── audit.service.ts      # AuditLog
+│       ├── analytics.service.ts  # Admin analytics
+│       └── ksm-view-ingest.service.ts # External VIEW ingestion (opsiyonel)
+├── prisma/
+│   ├── schema.prisma             # DB şeması (enum/model/relations)
+│   ├── migrations/               # migrate dev çıktıları
+│   └── seed.ts                   # seed users + sample files
+├── middleware.ts                 # Route guard (auth + admin sayfaları)
+├── docker-compose.yml            # postgres + app (prod-like)
+├── Dockerfile                    # compose için build (Next.js production)
+├── .dockerignore
+└── start-local.ps1               # Windows için hızlı local başlatma
+```
 
-### MVP (Current)
-- ✅ Core file management
-- ✅ Full workflow (R100/R200)
-- ✅ Timer system
-- ✅ Location tracking
-- ✅ Basic reporting
-- ✅ RBAC
+### Önemli konseptler (DB tarafı)
 
-### Phase 2 (Planned)
-- 📊 Advanced reporting & analytics
-- 🔔 In-app notifications
-- 📧 Email alerts
-- 📱 PWA support
-- 🔗 WebSocket real-time updates
-- 📤 Excel export
+Yeni biri için en kritik model/alanlar:
+
+- **`File`**: ana iş objesi (status, stage, currentDepartmentId, assignedDesignerId, pendingTakeover, requiresApproval)
+- **`AuditLog`**: her transfer/aksiyon burada (timeline için temel kaynak)
+- **`Timer`**: departman bazlı süre ölçümü (startTime/endTime)
+- **`WorkSession`**: “kullanıcı şu dosyada çalışıyor” oturumu
+- **`TimeEntry`**: (varsa) daha granular time tracking
+- **`Department`**: ONREPRO/REPRO/KALITE/KOLAJ + virtual CUSTOMER
+- **`LocationSlot`**: fiziksel lokasyon raf/masa kodları (A1, R1, Q1…)
+
+### Auth / yetkilendirme nerede?
+
+- **Session oluşturma**: `lib/auth.ts` (Credentials login + bcrypt compare)
+- **Route koruması**: `middleware.ts`
+  - `/dashboard/**` için token zorunlu
+  - `/api/**` için token zorunlu (NextAuth route’ları hariç)
+  - `/dashboard/admin`, `/dashboard/reports`, `/dashboard/assignments` admin değilse `/dashboard`’a redirect
+- **RBAC kuralları**: `lib/rbac.ts`
+
+### Workflow/state değişimleri nerede?
+
+- Approval / müşteri döngüsü / kalite / üretim gibi state değişimleri: `lib/services/workflow.service.ts`
+- File oluşturma, dosya sorgulama, bazı yardımcılar: `lib/services/file.service.ts`
+- Aksiyonların izlenebilirliği: `lib/services/audit.service.ts` (+ DB’de `AuditLog`)
+
+## 🧱 Legacy/demo klasörleri (opsiyonel)
+
+Bu repo içinde ayrıca şunlar var:
+- `backend/`: Express + SQLite demo backend (Next.js uygulaması tarafından kullanılmaz)
+- `frontend/`: Vite + React demo frontend (Next.js uygulaması tarafından kullanılmaz)
+
+Yeni geliştirmelerde önerilen yol: **`repro_dashboard/` kökündeki Next.js uygulaması**.
+
+## 🛠️ Sık karşılaşılan sorunlar
+
+- **Prisma client hataları / “Cannot read properties of undefined … findMany”**:
+
+```bash
+npx prisma generate
+```
+
+- **DB ayağa kalkmıyor**: Docker Desktop’ın açık olduğundan emin olun ve:
+
+```bash
+docker-compose up -d db
+```
+
+## 🔒 Üretim notları (kısa)
+
+- `NEXTAUTH_SECRET` üretimde **uzun ve rastgele** olmalı
+- `DATABASE_URL` üretim DB’ye işaret etmeli
+- Seed kullanıcıları üretimde kullanmayın (veya seed’i prod’da çalıştırmayın)
 
 ## 📄 License
 
-Proprietary - All rights reserved.
-
-## 🤝 Support
-
-For questions or issues, contact the development team.
+Proprietary – All rights reserved.
