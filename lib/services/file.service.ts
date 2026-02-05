@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { FileStatus, Priority, Prisma } from '@prisma/client';
+import { ActionType, FileStatus, Priority, Prisma, Stage } from '@prisma/client';
 import { createAuditLog } from './audit.service';
 import { startTimer, stopActiveTimerForFile, getActiveTimer } from './timer.service';
 import { startWork, stopWork, getFileWorkerBreakdown } from './work-session.service';
@@ -64,6 +64,9 @@ export async function createFile(
       dueDate: input.dueDate ?? undefined,
       ksmData: input.ksmData ?? Prisma.JsonNull,
       status: FileStatus.AWAITING_ASSIGNMENT,
+      stage: Stage.PRE_REPRO,
+      targetAssigneeId: input.targetAssigneeId,
+      assignedDesignerId: null,
       currentDepartmentId: onreproDept.id,
       currentLocationSlotId: input.locationSlotId,
       fileTypeId: genelFileType?.id ?? undefined,
@@ -76,6 +79,7 @@ export async function createFile(
       currentDepartment: true,
       currentLocationSlot: true,
       fileType: true,
+      targetAssignee: { select: { id: true, fullName: true, username: true } },
     },
   });
 
@@ -99,6 +103,13 @@ export async function getFileById(id: string) {
     where: { id },
     include: {
       assignedDesigner: {
+        select: {
+          id: true,
+          fullName: true,
+          username: true,
+        },
+      },
+      targetAssignee: {
         select: {
           id: true,
           fullName: true,
@@ -187,6 +198,10 @@ export async function listFiles(query: FileQueryInput) {
   if (query.priority) {
     const priorities = query.priority.split(',') as Priority[];
     where.priority = { in: priorities };
+  }
+
+  if (query.assignmentPoolOnly) {
+    where.targetAssigneeId = null;
   }
 
   if (query.search) {
@@ -347,7 +362,8 @@ export async function updateKsmTechnicalDataNormalized(
 }
 
 /**
- * Assign file to designer
+ * Assign file to Pre-Repro queue with target designer (grafiker).
+ * File does NOT go to designer's list until Ön Repro user hands off via "Devret".
  */
 export async function assignFile(
   fileId: string,
@@ -367,33 +383,34 @@ export async function assignFile(
     throw new Error('Dosya atama için uygun değil');
   }
 
-  // Get designer and repro department
-  const [designer, reproDept] = await Promise.all([
+  // Get designer (target grafiker) and Ön Repro department
+  const [designer, onreproDept] = await Promise.all([
     prisma.user.findUnique({
       where: { id: designerId },
       select: { id: true, fullName: true, departmentId: true },
     }),
-    prisma.department.findUnique({ where: { code: 'REPRO' } }),
+    prisma.department.findUnique({ where: { code: 'ONREPRO' } }),
   ]);
 
   if (!designer) {
     throw new Error('Tasarımcı bulunamadı');
   }
 
-  if (!reproDept) {
-    throw new Error('Repro departmanı bulunamadı');
+  if (!onreproDept) {
+    throw new Error('Ön Repro departmanı bulunamadı');
   }
 
   const updatedFile = await prisma.file.update({
     where: { id: fileId },
     data: {
-      assignedDesignerId: designerId,
-      status: FileStatus.ASSIGNED,
-      currentDepartmentId: reproDept.id,
-      pendingTakeover: true,
+      targetAssigneeId: designerId,
+      assignedDesignerId: null,
+      stage: Stage.PRE_REPRO,
+      currentDepartmentId: onreproDept.id,
+      // status stays AWAITING_ASSIGNMENT; pool filters by targetAssigneeId == null
     },
     include: {
-      assignedDesigner: {
+      targetAssignee: {
         select: { id: true, fullName: true, username: true },
       },
       currentDepartment: {
@@ -402,15 +419,16 @@ export async function assignFile(
     },
   });
 
-  // Create audit log
+  // Create audit log (sent to Pre-Repro queue, target grafiker stored)
   await createAuditLog({
     fileId,
     actionType: 'ASSIGN',
     byUserId: managerId,
-    toDepartmentId: reproDept.id,
+    toDepartmentId: onreproDept.id,
     payload: {
-      assignedTo: designer.fullName,
-      designerId: designer.id,
+      targetDesignerId: designer.id,
+      targetDesignerName: designer.fullName,
+      sentToPreReproQueue: true,
       note,
     },
   });
@@ -421,7 +439,7 @@ export async function assignFile(
       data: {
         fileId,
         userId: managerId,
-        departmentId: reproDept.id,
+        departmentId: onreproDept.id,
         message: note,
         isSystem: false,
       },
@@ -609,12 +627,13 @@ export async function getDepartmentQueue(departmentId: string, userId: string) {
 }
 
 /**
- * Get designer's assigned files
+ * Get designer's assigned files (only REPRO stage – PRE_REPRO never appears in designer list)
  */
 export async function getDesignerFiles(designerId: string) {
   return prisma.file.findMany({
     where: {
       assignedDesignerId: designerId,
+      stage: Stage.REPRO,
       status: { notIn: [FileStatus.SENT_TO_PRODUCTION] },
     },
     include: {
@@ -634,4 +653,162 @@ export async function getDesignerFiles(designerId: string) {
       { updatedAt: 'desc' },
     ],
   });
+}
+
+/**
+ * Get files in Pre-Repro queue (stage = PRE_REPRO)
+ */
+export async function getPreReproQueue() {
+  return prisma.file.findMany({
+    where: { stage: Stage.PRE_REPRO },
+    include: {
+      targetAssignee: {
+        select: { id: true, fullName: true, username: true },
+      },
+      assignedDesigner: {
+        select: { id: true, fullName: true, username: true },
+      },
+      currentDepartment: {
+        select: { id: true, name: true, code: true },
+      },
+      currentLocationSlot: {
+        select: { id: true, code: true, name: true },
+      },
+    },
+    orderBy: [{ createdAt: 'asc' }],
+  });
+}
+
+/**
+ * Claim Pre-Repro (Devral): set current assignee to the claiming user.
+ * Only allowed when stage is PRE_REPRO and assignedDesignerId is null.
+ */
+export async function claimPreRepro(fileId: string, userId: string) {
+  const file = await getFileById(fileId);
+  if (!file) {
+    throw new Error('Dosya bulunamadı');
+  }
+  if (file.stage !== Stage.PRE_REPRO) {
+    throw new Error('Dosya Ön Repro aşamasında değil');
+  }
+  if (file.assignedDesignerId != null) {
+    throw new Error('Dosya zaten başka biri tarafından devralınmış');
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedFile = await tx.file.update({
+      where: { id: fileId },
+      data: { assignedDesignerId: userId },
+      include: {
+        assignedDesigner: { select: { id: true, fullName: true, username: true } },
+        targetAssignee: { select: { id: true, fullName: true, username: true } },
+        currentDepartment: { select: { id: true, name: true, code: true } },
+      },
+    });
+    await createAuditLog({
+      fileId,
+      actionType: 'PRE_REPRO_CLAIMED',
+      byUserId: userId,
+      payload: { claimedBy: userId },
+    });
+    return updatedFile;
+  });
+
+  return updated;
+}
+
+/**
+ * Handoff Pre-Repro (Devret): set stage to REPRO, assign file to target assignee,
+ * and move to REPRO department so file appears in designer's "Dosyalarım" as pending takeover.
+ */
+export async function completePreRepro(fileId: string, userId: string) {
+  const file = await getFileById(fileId);
+  if (!file) {
+    throw new Error('Dosya bulunamadı');
+  }
+  if (file.stage !== Stage.PRE_REPRO) {
+    throw new Error('Dosya Ön Repro aşamasında değil');
+  }
+  if (file.assignedDesignerId !== userId) {
+    throw new Error('Devretmek için önce bu dosyayı devralmış olmalısınız');
+  }
+  if (!file.targetAssigneeId) {
+    throw new Error('Dosyada hedef atanacak kişi tanımlı değil');
+  }
+
+  const reproDept = await prisma.department.findUnique({ where: { code: 'REPRO' } });
+  if (!reproDept) {
+    throw new Error('Repro departmanı bulunamadı');
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedFile = await tx.file.update({
+      where: { id: fileId },
+      data: {
+        stage: Stage.REPRO,
+        assignedDesignerId: file.targetAssigneeId,
+        currentDepartmentId: reproDept.id,
+        status: FileStatus.ASSIGNED,
+        pendingTakeover: true,
+      },
+      include: {
+        assignedDesigner: { select: { id: true, fullName: true, username: true } },
+        targetAssignee: { select: { id: true, fullName: true, username: true } },
+        currentDepartment: { select: { id: true, name: true, code: true } },
+      },
+    });
+    await createAuditLog({
+      fileId,
+      actionType: 'PRE_REPRO_HANDED_OFF',
+      byUserId: userId,
+      toDepartmentId: reproDept.id,
+      payload: {
+        fromStage: 'PRE_REPRO',
+        toStage: 'REPRO',
+        fromAssignee: userId,
+        toAssignee: file.targetAssigneeId,
+      },
+    });
+    return updatedFile;
+  });
+
+  return updated;
+}
+
+/**
+ * Return Pre-Repro file to queue (Geri Kuyruğa At).
+ * Only allowed when stage is PRE_REPRO and assignedDesignerId === currentUserId.
+ */
+export async function returnPreReproToQueue(fileId: string, userId: string) {
+  const file = await getFileById(fileId);
+  if (!file) {
+    throw new Error('Dosya bulunamadı');
+  }
+  if (file.stage !== Stage.PRE_REPRO) {
+    throw new Error('Dosya Ön Repro aşamasında değil');
+  }
+  if (file.assignedDesignerId !== userId) {
+    throw new Error('Sadece dosyayı devralmış kişi geri kuyruğa atabilir');
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedFile = await tx.file.update({
+      where: { id: fileId },
+      data: { assignedDesignerId: null },
+      include: {
+        assignedDesigner: { select: { id: true, fullName: true, username: true } },
+        targetAssignee: { select: { id: true, fullName: true, username: true } },
+        currentDepartment: { select: { id: true, name: true, code: true } },
+      },
+    });
+    await createAuditLog({
+      fileId,
+      actionType: 'PRE_REPRO_RETURNED_TO_QUEUE' as ActionType,
+      byUserId: userId,
+      payload: { returnedBy: userId },
+    });
+    return updatedFile;
+  });
+
+  return updated;
 }

@@ -47,6 +47,9 @@ enum ActionType {
   LOCATION_UPDATE
   NOTE_ADDED
   STATUS_CHANGE
+  PRE_REPRO_CLAIMED
+  PRE_REPRO_HANDED_OFF
+  PRE_REPRO_RETURNED_TO_QUEUE
 }
 
 enum Priority {
@@ -62,6 +65,14 @@ enum LocationArea {
   QUALITY
   KOLAJ
   ARCHIVE
+}
+
+enum Stage {
+  PRE_REPRO
+  REPRO
+  PLOTTER_KONTROL
+  COLLAGE
+  DONE
 }
 
 // ============================================
@@ -81,9 +92,10 @@ model User {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  department       Department  @relation(fields: [departmentId], references: [id])
-  assignedFiles    File[]      @relation("AssignedDesigner")
-  timers           Timer[]
+  department          Department  @relation(fields: [departmentId], references: [id])
+  assignedFiles       File[]      @relation("AssignedDesigner")
+  targetAssigneeFiles File[]      @relation("TargetAssignee")
+  timers              Timer[]
   notes            Note[]
   auditLogs        AuditLog[]  @relation("ByUser")
   workSessions     WorkSession[]
@@ -185,6 +197,8 @@ model File {
   ksmData               Json?      @map("ksm_data") @db.JsonB
   ksmTechnicalData      Json?      @map("ksm_technical_data") @db.JsonB
   status                FileStatus @default(AWAITING_ASSIGNMENT)
+  stage                 Stage?
+  targetAssigneeId      String?    @map("target_assignee_id")
   assignedDesignerId    String?    @map("assigned_designer_id")
   currentDepartmentId   String     @map("current_department_id")
   currentLocationSlotId String?    @map("current_location_slot_id")
@@ -202,6 +216,7 @@ model File {
 
   // Relations
   assignedDesigner    User?          @relation("AssignedDesigner", fields: [assignedDesignerId], references: [id])
+  targetAssignee      User?          @relation("TargetAssignee", fields: [targetAssigneeId], references: [id])
   currentDepartment   Department    @relation("CurrentDepartment", fields: [currentDepartmentId], references: [id])
   currentLocationSlot LocationSlot? @relation(fields: [currentLocationSlotId], references: [id])
   fileType            FileType?      @relation(fields: [fileTypeId], references: [id])
@@ -214,6 +229,8 @@ model File {
   @@map("files")
   @@index([fileNo])
   @@index([status])
+  @@index([stage])
+  @@index([targetAssigneeId])
   @@index([assignedDesignerId])
   @@index([currentDepartmentId])
   @@index([fileTypeId])

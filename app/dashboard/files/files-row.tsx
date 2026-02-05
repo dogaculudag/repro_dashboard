@@ -14,10 +14,12 @@ type FileRow = {
   fileNo: string;
   customerName: string;
   status: string;
+  stage?: string | null;
   priority: string;
   difficultyLevel: number;
   difficultyWeight: number;
   assignedDesigner: { id: string; fullName: string } | null;
+  targetAssignee?: { id: string; fullName: string } | null;
   currentDepartment: { id: string; name: string; code: string };
   currentLocationSlot: { id: string; code: string; name: string } | null;
   fileType: { id: string; name: string } | null;
@@ -92,6 +94,16 @@ export function FilesRow({
             <Badge className={STATUS_COLORS[file.status as keyof typeof STATUS_COLORS]}>
               {STATUS_LABELS[file.status as keyof typeof STATUS_LABELS]}
             </Badge>
+            {file.stage === 'PRE_REPRO' && !file.assignedDesigner && (
+              <Badge variant="secondary" className="whitespace-nowrap">
+                Ön Repro Kuyruğunda {file.targetAssignee?.fullName ? `(Hedef: ${file.targetAssignee.fullName})` : ''}
+              </Badge>
+            )}
+            {file.stage === 'PRE_REPRO' && file.assignedDesigner && (
+              <Badge variant="outline" className="whitespace-nowrap">
+                Ön Repro&apos;da (Sahip: {file.assignedDesigner.fullName})
+              </Badge>
+            )}
             {file.priority !== 'NORMAL' && (
               <Badge variant={file.priority === 'URGENT' ? 'destructive' : 'secondary'}>
                 {PRIORITY_LABELS[file.priority as keyof typeof PRIORITY_LABELS]}
@@ -113,8 +125,14 @@ export function FilesRow({
         <div className="text-right flex items-center gap-4">
           <div>
             <p className="text-sm">{file.currentDepartment.name}</p>
-            {file.assignedDesigner && (
+            {file.stage === 'PRE_REPRO' && file.targetAssignee && (
+              <p className="text-xs text-muted-foreground">Hedef: {file.targetAssignee.fullName}</p>
+            )}
+            {file.stage !== 'PRE_REPRO' && file.assignedDesigner && (
               <p className="text-xs text-muted-foreground">{file.assignedDesigner.fullName}</p>
+            )}
+            {file.stage === 'PRE_REPRO' && file.assignedDesigner && (
+              <p className="text-xs text-muted-foreground">Sahip: {file.assignedDesigner.fullName}</p>
             )}
             {file.currentLocationSlot && (
               <p className="text-xs text-muted-foreground">📍 {file.currentLocationSlot.code}</p>

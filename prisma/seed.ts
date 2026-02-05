@@ -644,6 +644,88 @@ async function main() {
     ],
   });
 
+  // ========================================
+  // Atama bekleyen dosyalar (15 adet)
+  // ========================================
+  console.log('Creating files awaiting assignment (atama bekleyen)...');
+
+  const awaitingAssignmentCustomers = [
+    { name: 'Saueressig Ambalaj', no: 'CUST-041', orderName: 'Sipariş SAU-2026-01' },
+    { name: 'Beta Folyo Ltd.', no: 'CUST-042', orderName: 'Yılbaşı etiketleri' },
+    { name: 'Delta Matbaa A.Ş.', no: 'CUST-043', orderName: 'Katalog kapak' },
+    { name: 'Epsilon Gıda San.', no: 'CUST-044', orderName: 'Çikolata paketi MG2' },
+    { name: 'Gamma Kozmetik', no: 'CUST-045', orderName: 'Parfüm kutusu revizyon' },
+    { name: 'Omega Tekstil', no: 'CUST-046', orderName: 'Tişört baskı' },
+    { name: 'Sigma İlaç', no: 'CUST-047', orderName: 'Prospektüs 2026' },
+    { name: 'Theta Otomotiv', no: 'CUST-048', orderName: 'Araç etiket serisi' },
+    { name: 'Zeta Medikal', no: 'CUST-049', orderName: 'Steril paket baskı' },
+    { name: 'Eta Elektronik', no: 'CUST-050', orderName: 'Kutu üretim baskı' },
+    { name: 'Kappa Deri', no: 'CUST-051', orderName: 'Etiket yeni tasarım' },
+    { name: 'Lambda Temizlik', no: 'CUST-052', orderName: 'Deterjan etiket' },
+    { name: 'Mu Tarım', no: 'CUST-053', orderName: 'Tohum paketi' },
+    { name: 'Nu İnşaat', no: 'CUST-054', orderName: 'Ürün kataloğu' },
+    { name: 'Xi Perakende', no: 'CUST-055', orderName: 'Promosyon etiket seti' },
+  ];
+
+  const awaitingSlots = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'];
+  const awaitingKsm = [
+    { width: 800, height: 600, colors: ['CMYK'], cylinder: 'C-080' },
+    { width: 1000, height: 700, colors: ['Cyan', 'Magenta', 'Yellow', 'Black'], cylinder: 'C-100' },
+    { width: 1200, height: 800, colors: ['Pantone 485', 'Black'], cylinder: 'C-120' },
+    { width: 600, height: 400, colors: ['Spot Orange', 'Black'], cylinder: 'C-060' },
+    { width: 1500, height: 1000, colors: ['CMYK', 'Spot'], cylinder: 'C-150' },
+    { width: 900, height: 500, colors: ['CMYK'], cylinder: 'C-090' },
+  ];
+  const awaitingPriorities = [Priority.NORMAL, Priority.NORMAL, Priority.HIGH, Priority.URGENT, Priority.LOW];
+
+  for (let i = 0; i < 15; i++) {
+    const num = 41 + i;
+    const fileNo = `REP-2026-${String(num).padStart(4, '0')}`;
+    const cust = awaitingAssignmentCustomers[i];
+    const slotCode = awaitingSlots[i % awaitingSlots.length];
+    const ksm = awaitingKsm[i % awaitingKsm.length];
+    const priority = awaitingPriorities[i % awaitingPriorities.length];
+    const dueDate = new Date(Date.now() + (3 + (i % 10)) * 24 * 60 * 60 * 1000);
+
+    const f = await prisma.file.upsert({
+      where: { fileNo },
+      update: {
+        fileTypeId: genelFileType.id,
+        difficultyLevel: 2 + (i % 3),
+        difficultyWeight: 0.8 + (i % 5) * 0.1,
+        status: FileStatus.AWAITING_ASSIGNMENT,
+        currentDepartmentId: deptMap.ONREPRO.id,
+        currentLocationSlotId: slotMap[slotCode].id,
+      },
+      create: {
+        fileNo,
+        customerName: cust.name,
+        customerNo: cust.no,
+        orderName: cust.orderName,
+        ksmData: ksm,
+        status: FileStatus.AWAITING_ASSIGNMENT,
+        currentDepartmentId: deptMap.ONREPRO.id,
+        currentLocationSlotId: slotMap[slotCode].id,
+        fileTypeId: genelFileType.id,
+        difficultyLevel: 2 + (i % 3),
+        difficultyWeight: 0.8 + (i % 5) * 0.1,
+        priority,
+        dueDate,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        fileId: f.id,
+        actionType: 'CREATE',
+        toDepartmentId: deptMap.ONREPRO.id,
+        byUserId: userMap.onrepro1.id,
+        payload: { source: 'seed', note: 'Atama bekleyen dosya' },
+      },
+    });
+  }
+
+  console.log('✅ Created 15 files awaiting assignment (atama bekleyen dosyalar)');
   console.log(`✅ Created 40 sample files (6 detailed + 34 extra) with timers and notes`);
 
   console.log('');

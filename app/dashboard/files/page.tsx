@@ -47,6 +47,7 @@ export default async function FilesPage({ searchParams }: PageProps) {
       where,
       include: {
         assignedDesigner: { select: { id: true, fullName: true } },
+        targetAssignee: { select: { id: true, fullName: true } },
         currentDepartment: { select: { id: true, name: true, code: true } },
         currentLocationSlot: { select: { id: true, code: true, name: true } },
         fileType: { select: { id: true, name: true } },

@@ -93,7 +93,11 @@ export default function AssignmentsPage() {
       });
       const data = await response.json();
       if (!data.success) throw new Error(data.error?.message || 'Atama başarısız');
-      toast({ title: 'Atandı', description: 'Dosya grafikerine atandı.' });
+      const targetName = data.data?.targetAssignee?.fullName ?? designers.find((d) => d.id === assigneeId)?.fullName ?? 'Grafiker';
+      toast({
+        title: 'Ön Repro Kuyruğuna Gönderildi',
+        description: `Dosya ön repro kuyruğuna gönderildi (Hedef: ${targetName}). Ön repro devretmeden grafiker listesine düşmez.`,
+      });
       loadData();
       router.refresh();
     } catch (error: any) {
@@ -134,7 +138,11 @@ export default function AssignmentsPage() {
           variant: 'destructive',
         });
       } else {
-        toast({ title: 'Başarılı', description: `${successCount} dosya toplu olarak atandı` });
+        const designerName = designers.find((d: any) => d.id === selectedDesigner)?.fullName ?? 'Grafiker';
+        toast({
+          title: 'Ön Repro Kuyruğuna Gönderildi',
+          description: `${successCount} dosya ön repro kuyruğuna gönderildi (Hedef: ${designerName}). Ön repro devretmeden grafiker listesine düşmez.`,
+        });
       }
       setSelectedFiles([]);
       setSelectedDesigner('');
@@ -189,7 +197,7 @@ export default function AssignmentsPage() {
             {someSelected && <Badge variant="secondary">{selectedFiles.length} seçili</Badge>}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Satıra tıklayarak dosya detayına gidebilir, yanındaki kutudan grafiker seçerek hızlı atama yapabilirsiniz.
+            Grafiker seçtiğinizde dosya Ön Repro Kuyruğuna gönderilir (hedef grafiker kaydedilir). Ön repro kullanıcısı dosyayı sahiplenip &quot;Devret&quot; dediğinde dosya o grafikerin listesine düşer.
           </p>
         </CardHeader>
         <CardContent>
@@ -254,17 +262,17 @@ export default function AssignmentsPage() {
                     >
                       <SelectTrigger
                         className="h-9 bg-muted/50"
-                        title="Grafiker seç – hızlı atama"
+                        title="Hedef grafiker seç – dosya ön repro kuyruğuna gider"
                       >
                         {assigningFileId === file.id ? (
                           <span className="flex items-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            Atanıyor...
+                            Kuyruğa gönderiliyor...
                           </span>
                         ) : (
                           <span className="flex items-center gap-2 text-muted-foreground">
                             <User className="h-4 w-4" />
-                            Grafiker seç
+                            Hedef grafiker seç
                           </span>
                         )}
                       </SelectTrigger>
@@ -289,9 +297,9 @@ export default function AssignmentsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-lg">
             <CardHeader>
-              <CardTitle>Toplu Atama</CardTitle>
+              <CardTitle>Ön Repro Kuyruğuna Gönder</CardTitle>
               <p className="text-sm text-muted-foreground">
-                {selectedFiles.length} dosyayı aynı tasarımcıya atayacaksınız.
+                {selectedFiles.length} dosyayı seçtiğiniz hedef grafiker için ön repro kuyruğuna göndereceksiniz. Ön repro devretmeden dosyalar grafiker listesine düşmez.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -310,10 +318,10 @@ export default function AssignmentsPage() {
                 </ul>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Grafiker seç *</label>
+                <label className="text-sm font-medium">Hedef grafiker seç *</label>
                 <Select value={selectedDesigner} onValueChange={setSelectedDesigner}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Grafiker seçin..." />
+                    <SelectValue placeholder="Hedef grafiker seçin (ön repro kuyruğuna gidecek)..." />
                   </SelectTrigger>
                   <SelectContent>
                     {designers.map((designer) => (
@@ -339,9 +347,9 @@ export default function AssignmentsPage() {
                 </Button>
                 <Button onClick={handleBulkAssign} disabled={loading}>
                   {loading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Atanıyor...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Kuyruğa gönderiliyor...</>
                   ) : (
-                    <><UserPlus className="mr-2 h-4 w-4" />{selectedFiles.length} Dosyayı Ata</>
+                    <><UserPlus className="mr-2 h-4 w-4" />{selectedFiles.length} Dosyayı Kuyruğa Gönder</>
                   )}
                 </Button>
               </div>

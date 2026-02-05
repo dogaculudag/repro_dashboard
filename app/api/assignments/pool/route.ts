@@ -27,6 +27,7 @@ export async function GET() {
 
     const result = await listFiles({
       status: 'AWAITING_ASSIGNMENT',
+      assignmentPoolOnly: true,
       page: 1,
       limit: 500,
       sortBy: 'createdAt',

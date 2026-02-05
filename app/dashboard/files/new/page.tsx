@@ -24,6 +24,7 @@ export default function NewFilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState<any[]>([]);
+  const [designers, setDesigners] = useState<{ id: string; fullName: string; username: string }[]>([]);
   const [nextFileNo, setNextFileNo] = useState<string>('');
   const [customerSuggestions, setCustomerSuggestions] = useState<CustomerOption[]>([]);
   const [customerSuggestionsOpen, setCustomerSuggestionsOpen] = useState(false);
@@ -39,6 +40,7 @@ export default function NewFilePage() {
     orderName: '',
     designNo: '',
     revisionNo: '',
+    targetAssigneeId: '',
     locationSlotId: '',
     priority: 'NORMAL',
     requiresApproval: true,
@@ -54,10 +56,12 @@ export default function NewFilePage() {
     Promise.all([
       fetch('/api/locations?area=WAITING').then((res) => res.json()),
       fetch('/api/files/next-file-no').then((res) => res.json()),
+      fetch('/api/users/designers').then((res) => res.json()),
     ])
-      .then(([locData, fileNoData]) => {
+      .then(([locData, fileNoData, designersData]) => {
         if (locData.success) setLocations(locData.data);
         if (fileNoData.success) setNextFileNo(fileNoData.data.fileNo);
+        if (designersData.success) setDesigners(designersData.data ?? []);
       })
       .catch(console.error);
   }, []);
@@ -114,6 +118,7 @@ export default function NewFilePage() {
         orderName: formData.orderName || null,
         designNo: formData.designNo || null,
         revisionNo: formData.revisionNo || null,
+        targetAssigneeId: formData.targetAssigneeId || undefined,
         locationSlotId: formData.locationSlotId,
         priority: formData.priority,
         requiresApproval: formData.requiresApproval,
@@ -304,6 +309,27 @@ export default function NewFilePage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="targetAssigneeId">Hedef Kişi *</Label>
+                <Select
+                  value={formData.targetAssigneeId}
+                  onValueChange={(value) => setFormData({ ...formData, targetAssigneeId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Hedef kişi seçin..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {designers.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.fullName} ({d.username})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Dosya Ön Repro kuyruğuna düşer; devredildiğinde bu kişiye atanır.
+                </p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="locationSlotId">Fiziksel Konum *</Label>
                 <Select
                   value={formData.locationSlotId}
@@ -403,7 +429,10 @@ export default function NewFilePage() {
         </Card>
 
         <div className="flex gap-4">
-          <Button type="submit" disabled={loading}>
+          <Button
+            type="submit"
+            disabled={loading || !formData.targetAssigneeId || !formData.locationSlotId}
+          >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Dosya Oluştur
           </Button>
