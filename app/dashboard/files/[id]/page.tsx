@@ -21,7 +21,6 @@ import {
 } from '@/lib/utils';
 import { FileActions } from '@/components/files/file-actions';
 import { FileActionButtons } from '@/components/files/file-action-buttons';
-import { FileTimer } from '@/components/files/file-timer';
 import { FileInfoCard } from '@/components/files/file-info-card';
 import { FileTimelineCard } from '@/components/files/file-timeline-card';
 import { KsmTechnicalDataForm } from '@/components/files/ksm-technical-data-form';
@@ -168,19 +167,6 @@ export default async function FileDetailPage({ params }: PageProps) {
           currentLocationSlot: file.currentLocationSlot,
         }}
       />
-
-      {/* Süre takibi (TimeEntry) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Süre takibi</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Bu dosyada çalışma sürenizi kaydetmek için timer başlatın/durdurun (performans analitiğinde kullanılır).
-          </p>
-        </CardHeader>
-        <CardContent>
-          <FileTimer fileId={file.id} />
-        </CardContent>
-      </Card>
 
       {/* Actions */}
       {actionsForUi.length > 0 && (

@@ -14,7 +14,7 @@ import {
   calculateElapsedSeconds,
 } from '@/lib/utils';
 import Link from 'next/link';
-import { Clock, ArrowRight, Play, AlertCircle } from 'lucide-react';
+import { Clock, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default async function QueuePage() {
   const session = await auth();
@@ -172,12 +172,6 @@ export default async function QueuePage() {
                     <Link href={`/dashboard/files/${file.id}`}>
                       <Button size="sm" variant="outline">
                         Detay
-                      </Button>
-                    </Link>
-                    <Link href={`/dashboard/files/${file.id}`}>
-                      <Button size="sm">
-                        <Play className="mr-1 h-4 w-4" />
-                        Devral
                       </Button>
                     </Link>
                   </div>

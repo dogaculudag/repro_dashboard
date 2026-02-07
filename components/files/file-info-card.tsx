@@ -269,7 +269,7 @@ export function FileInfoCard({ file }: { file: FileForInfo }) {
                   {locations.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id} disabled={!!loc.currentFile}>
                       {loc.code} - {loc.name}
-                      {loc.currentFile && ' (dolu)'}
+                      {loc.currentFile ? ' (dolu)' : null}
                     </SelectItem>
                   ))}
                 </SelectContent>
