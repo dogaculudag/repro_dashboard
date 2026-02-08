@@ -93,10 +93,10 @@ export default function AssignmentsPage() {
       });
       const data = await response.json();
       if (!data.success) throw new Error(data.error?.message || 'Atama başarısız');
-      const targetName = data.data?.targetAssignee?.fullName ?? designers.find((d) => d.id === assigneeId)?.fullName ?? 'Grafiker';
+      const targetName = data.data?.assignedDesigner?.fullName ?? designers.find((d) => d.id === assigneeId)?.fullName ?? 'Grafiker';
       toast({
-        title: 'Ön Repro Kuyruğuna Gönderildi',
-        description: `Dosya ön repro kuyruğuna gönderildi (Hedef: ${targetName}). Ön repro devretmeden grafiker listesine düşmez.`,
+        title: 'Dosya direkt atandı',
+        description: `Dosya ${targetName} kullanıcısının "Dosyalarım" listesine eklendi.`,
       });
       loadData();
       router.refresh();
@@ -140,8 +140,8 @@ export default function AssignmentsPage() {
       } else {
         const designerName = designers.find((d: any) => d.id === selectedDesigner)?.fullName ?? 'Grafiker';
         toast({
-          title: 'Ön Repro Kuyruğuna Gönderildi',
-          description: `${successCount} dosya ön repro kuyruğuna gönderildi (Hedef: ${designerName}). Ön repro devretmeden grafiker listesine düşmez.`,
+          title: 'Dosyalar direkt atandı',
+          description: `${successCount} dosya ${designerName} kullanıcısının "Dosyalarım" listesine eklendi.`,
         });
       }
       setSelectedFiles([]);
@@ -161,8 +161,10 @@ export default function AssignmentsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Atama Havuzu</h1>
-          <p className="text-gray-500">{files.length} dosya atama bekliyor</p>
+          <h1 className="text-2xl font-bold text-gray-900">Bahar Atama Havuzu</h1>
+          <p className="text-gray-500">
+            {files.length} dosya size atanmış (Ön Repro&apos;dan devredilen)
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {files.length > 0 && (
@@ -193,18 +195,21 @@ export default function AssignmentsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Atama Bekleyen Dosyalar</span>
+            <span>Size Atanmış Dosyalar</span>
             {someSelected && <Badge variant="secondary">{selectedFiles.length} seçili</Badge>}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Grafiker seçtiğinizde dosya Ön Repro Kuyruğuna gönderilir (hedef grafiker kaydedilir). Ön repro kullanıcısı dosyayı sahiplenip &quot;Devret&quot; dediğinde dosya o grafikerin listesine düşer.
+            Bu havuz sadece Ön Repro&apos;dan size devredilen dosyaları gösterir. Seçim yaptığınızda dosya doğrudan seçilen kullanıcıya atanır. Ön Repro kuyruğundaki dosyalar için <Link href="/dashboard/queues/pre-repro" className="text-primary hover:underline">Ön Repro Kuyruğu</Link> sayfasını kullanın.
           </p>
         </CardHeader>
         <CardContent>
           {files.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Atama bekleyen dosya yok</p>
+              <p className="text-muted-foreground">Size atanmış (devredilmiş) dosya yok</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Ön Repro kuyruğundaki dosyalar için <Link href="/dashboard/queues/pre-repro" className="text-primary hover:underline">Ön Repro Kuyruğu</Link> sayfasına gidin.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -262,17 +267,17 @@ export default function AssignmentsPage() {
                     >
                       <SelectTrigger
                         className="h-9 bg-muted/50"
-                        title="Hedef grafiker seç – dosya ön repro kuyruğuna gider"
+                        title="Kişi seçin – dosya doğrudan o kişiye atanır"
                       >
                         {assigningFileId === file.id ? (
                           <span className="flex items-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            Kuyruğa gönderiliyor...
+                            Atanıyor...
                           </span>
                         ) : (
                           <span className="flex items-center gap-2 text-muted-foreground">
                             <User className="h-4 w-4" />
-                            Hedef grafiker seç
+                            Kişi seç (direkt ata)
                           </span>
                         )}
                       </SelectTrigger>
@@ -297,9 +302,9 @@ export default function AssignmentsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-lg">
             <CardHeader>
-              <CardTitle>Ön Repro Kuyruğuna Gönder</CardTitle>
+              <CardTitle>Toplu Direkt Ata</CardTitle>
               <p className="text-sm text-muted-foreground">
-                {selectedFiles.length} dosyayı seçtiğiniz hedef grafiker için ön repro kuyruğuna göndereceksiniz. Ön repro devretmeden dosyalar grafiker listesine düşmez.
+                {selectedFiles.length} dosya doğrudan seçtiğiniz kullanıcıya atanacak ve o kişinin &quot;Dosyalarım&quot; listesine düşecek.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -318,10 +323,10 @@ export default function AssignmentsPage() {
                 </ul>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Hedef grafiker seç *</label>
+                <label className="text-sm font-medium">Grafiker seç *</label>
                 <Select value={selectedDesigner} onValueChange={setSelectedDesigner}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Hedef grafiker seçin (ön repro kuyruğuna gidecek)..." />
+                    <SelectValue placeholder="Dosyaların atanacağı kişiyi seçin..." />
                   </SelectTrigger>
                   <SelectContent>
                     {designers.map((designer) => (
@@ -347,9 +352,9 @@ export default function AssignmentsPage() {
                 </Button>
                 <Button onClick={handleBulkAssign} disabled={loading}>
                   {loading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Kuyruğa gönderiliyor...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Atanıyor...</>
                   ) : (
-                    <><UserPlus className="mr-2 h-4 w-4" />{selectedFiles.length} Dosyayı Kuyruğa Gönder</>
+                    <><UserPlus className="mr-2 h-4 w-4" />{selectedFiles.length} Dosyayı Ata</>
                   )}
                 </Button>
               </div>

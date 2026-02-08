@@ -82,6 +82,7 @@ Yeni giren birinin en hızlı kavram kazanacağı dosyalar:
 - **DB modelleri**
   - `prisma/schema.prisma`: tüm tablo/enum ilişkileri
   - `prisma/seed.ts`: seed kullanıcılar + örnek dosyalar
+  - `prisma/seed-files-only.ts`: sadece dosya seed'i (yeni gelmiş, işlem yapılmamış dosyalar)
 
 ### İstek akışı (mental model)
 
@@ -135,6 +136,9 @@ copy .env.example .env
 # Şema + seed
 npm run db:push
 npm run db:seed
+
+# (İsteğe bağlı) Sadece yeni dosya seed'i: kişi/profil yok, tüm dosyalar AWAITING_ASSIGNMENT, işlem yok
+# npm run db:seed-files-only
 
 # Uygulama
 npm run dev

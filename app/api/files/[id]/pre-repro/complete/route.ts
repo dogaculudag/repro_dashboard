@@ -43,10 +43,7 @@ export async function POST(
           { status: 403 }
         );
       }
-      if (
-        error.message === 'Dosya Ön Repro aşamasında değil' ||
-        error.message === 'Dosyada hedef atanacak kişi tanımlı değil'
-      ) {
+      if (error.message === 'Dosya Ön Repro aşamasında değil') {
         return NextResponse.json(
           { success: false, error: { code: 'VALIDATION_ERROR', message: error.message } },
           { status: 422 }

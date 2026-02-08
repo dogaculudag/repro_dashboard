@@ -1,6 +1,6 @@
 import { Client } from 'pg';
 import { prisma } from '@/lib/db';
-import { FileStatus, Priority, Prisma } from '@prisma/client';
+import { FileStatus, Priority, Prisma, Stage } from '@prisma/client';
 import { createAuditLog } from './audit.service';
 import {
   getSourceRefIdFromRaw,
@@ -130,6 +130,9 @@ export async function ingestFromKsmView(byUserId?: string): Promise<IngestResult
             revisionNo: (normalized.revision_no as string)?.slice(0, 50) ?? undefined,
             ksmTechnicalData: ksmTechnicalData as unknown as Prisma.JsonObject,
             status: FileStatus.AWAITING_ASSIGNMENT,
+            stage: Stage.PRE_REPRO,
+            assignedDesignerId: null,
+            targetAssigneeId: null,
             currentDepartmentId: onreproDept.id,
             fileTypeId: genelFileType?.id ?? undefined,
             difficultyLevel: 3,

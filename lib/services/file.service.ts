@@ -204,6 +204,10 @@ export async function listFiles(query: FileQueryInput) {
     where.targetAssigneeId = null;
   }
 
+  if (query.stage) {
+    where.stage = query.stage as Stage;
+  }
+
   if (query.search) {
     where.OR = [
       { fileNo: { contains: query.search, mode: 'insensitive' } },
@@ -362,8 +366,9 @@ export async function updateKsmTechnicalDataNormalized(
 }
 
 /**
- * Assign file to Pre-Repro queue with target designer (grafiker).
- * File does NOT go to designer's list until Ön Repro user hands off via "Devret".
+ * Assign file: iki akış desteklenir.
+ * 1) AWAITING_ASSIGNMENT (eski pool): direkt REPRO'ya atar.
+ * 2) REPRO ve assignedDesignerId=managerId (Bahar havuzu): dosya Bahar'da, seçilen kişiye reassign; stage REPRO kalır.
  */
 export async function assignFile(
   fileId: string,
@@ -379,38 +384,46 @@ export async function assignFile(
     throw new Error('Dosya bulunamadı');
   }
 
-  if (file.status !== FileStatus.AWAITING_ASSIGNMENT) {
-    throw new Error('Dosya atama için uygun değil');
-  }
-
-  // Get designer (target grafiker) and Ön Repro department
-  const [designer, onreproDept] = await Promise.all([
+  const [designer, reproDept] = await Promise.all([
     prisma.user.findUnique({
       where: { id: designerId },
-      select: { id: true, fullName: true, departmentId: true },
+      select: { id: true, fullName: true, username: true, departmentId: true },
     }),
-    prisma.department.findUnique({ where: { code: 'ONREPRO' } }),
+    prisma.department.findUnique({ where: { code: 'REPRO' } }),
   ]);
 
   if (!designer) {
     throw new Error('Tasarımcı bulunamadı');
   }
 
-  if (!onreproDept) {
-    throw new Error('Ön Repro departmanı bulunamadı');
+  if (!reproDept) {
+    throw new Error('Repro departmanı bulunamadı');
+  }
+
+  if (designer.departmentId !== reproDept.id) {
+    throw new Error('Seçilen kullanıcı REPRO departmanında olmalıdır');
+  }
+
+  const isBaharReassign =
+    file.stage === Stage.REPRO && file.assignedDesignerId === managerId;
+  const isInitialAssign = file.status === FileStatus.AWAITING_ASSIGNMENT;
+
+  if (!isBaharReassign && !isInitialAssign) {
+    throw new Error('Dosya atama için uygun değil');
   }
 
   const updatedFile = await prisma.file.update({
     where: { id: fileId },
     data: {
-      targetAssigneeId: designerId,
-      assignedDesignerId: null,
-      stage: Stage.PRE_REPRO,
-      currentDepartmentId: onreproDept.id,
-      // status stays AWAITING_ASSIGNMENT; pool filters by targetAssigneeId == null
+      stage: Stage.REPRO,
+      assignedDesignerId: designerId,
+      targetAssigneeId: null,
+      currentDepartmentId: reproDept.id,
+      status: FileStatus.ASSIGNED,
+      pendingTakeover: isBaharReassign,
     },
     include: {
-      targetAssignee: {
+      assignedDesigner: {
         select: { id: true, fullName: true, username: true },
       },
       currentDepartment: {
@@ -419,27 +432,26 @@ export async function assignFile(
     },
   });
 
-  // Create audit log (sent to Pre-Repro queue, target grafiker stored)
   await createAuditLog({
     fileId,
     actionType: 'ASSIGN',
     byUserId: managerId,
-    toDepartmentId: onreproDept.id,
+    toDepartmentId: reproDept.id,
     payload: {
-      targetDesignerId: designer.id,
-      targetDesignerName: designer.fullName,
-      sentToPreReproQueue: true,
+      assignedDesignerId: designer.id,
+      assignedDesignerName: designer.fullName,
+      directAssign: true,
+      baharReassign: isBaharReassign,
       note,
     },
   });
 
-  // Add note if provided
   if (note) {
     await prisma.note.create({
       data: {
         fileId,
         userId: managerId,
-        departmentId: onreproDept.id,
+        departmentId: reproDept.id,
         message: note,
         isSystem: false,
       },
@@ -718,8 +730,26 @@ export async function claimPreRepro(fileId: string, userId: string) {
 }
 
 /**
- * Handoff Pre-Repro (Devret): set stage to REPRO, assign file to target assignee,
- * and move to REPRO department so file appears in designer's "Dosyalarım" as pending takeover.
+ * Resolve the user id to assign to when devret has no target (default: Bahar).
+ * Uses BAHAR_USER_ID env or user with username 'bahar'.
+ */
+async function getBaharUserId(): Promise<string> {
+  const envId = process.env.BAHAR_USER_ID?.trim();
+  if (envId) {
+    const u = await prisma.user.findUnique({ where: { id: envId }, select: { id: true } });
+    if (u) return u.id;
+  }
+  const bahar = await prisma.user.findFirst({
+    where: { username: 'bahar' },
+    select: { id: true },
+  });
+  if (bahar) return bahar.id;
+  throw new Error('BAHAR_USER_ID tanımlı değil ve kullanıcı "bahar" bulunamadı');
+}
+
+/**
+ * Handoff Pre-Repro (Devret): set stage to REPRO, assign file to target assignee
+ * (or Bahar if no target), and move to REPRO department so file appears in designer's "Dosyalarım".
  */
 export async function completePreRepro(fileId: string, userId: string) {
   const file = await getFileById(fileId);
@@ -732,21 +762,20 @@ export async function completePreRepro(fileId: string, userId: string) {
   if (file.assignedDesignerId !== userId) {
     throw new Error('Devretmek için önce bu dosyayı devralmış olmalısınız');
   }
-  if (!file.targetAssigneeId) {
-    throw new Error('Dosyada hedef atanacak kişi tanımlı değil');
-  }
 
   const reproDept = await prisma.department.findUnique({ where: { code: 'REPRO' } });
   if (!reproDept) {
     throw new Error('Repro departmanı bulunamadı');
   }
 
+  const toAssigneeId = file.targetAssigneeId ?? (await getBaharUserId());
+
   const updated = await prisma.$transaction(async (tx) => {
     const updatedFile = await tx.file.update({
       where: { id: fileId },
       data: {
         stage: Stage.REPRO,
-        assignedDesignerId: file.targetAssigneeId,
+        assignedDesignerId: toAssigneeId,
         currentDepartmentId: reproDept.id,
         status: FileStatus.ASSIGNED,
         pendingTakeover: true,
@@ -766,7 +795,7 @@ export async function completePreRepro(fileId: string, userId: string) {
         fromStage: 'PRE_REPRO',
         toStage: 'REPRO',
         fromAssignee: userId,
-        toAssignee: file.targetAssigneeId,
+        toAssignee: toAssigneeId,
       },
     });
     return updatedFile;

@@ -40,7 +40,6 @@ export function FileActionButtons({
 
   const fileId = file.id;
   const assignedDesignerId = file.assignedDesignerId ?? null;
-  const targetAssigneeId = file.targetAssigneeId ?? null;
   const claimedByFullName = file.assignedDesigner?.fullName;
 
   const handleDevral = async () => {
@@ -148,26 +147,20 @@ export function FileActionButtons({
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      {targetAssigneeId ? (
-        <Button
-          onClick={handleDevret}
-          disabled={loading !== null}
-          size={size}
-        >
-          {loading === 'devret' ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <ArrowRight className="mr-1 h-4 w-4" />
-              Devret
-            </>
-          )}
-        </Button>
-      ) : (
-        <span className="text-sm text-muted-foreground">
-          Hedef kişi atanmadığı için devredemezsiniz
-        </span>
-      )}
+      <Button
+        onClick={handleDevret}
+        disabled={loading !== null}
+        size={size}
+      >
+        {loading === 'devret' ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            <ArrowRight className="mr-1 h-4 w-4" />
+            Devret
+          </>
+        )}
+      </Button>
       <Button
         onClick={handleReturn}
         disabled={loading !== null}

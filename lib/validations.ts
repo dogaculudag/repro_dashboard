@@ -36,7 +36,10 @@ export const createFileSchema = z.object({
   locationSlotId: z.string().uuid('Geçersiz konum ID'),
   requiresApproval: z.boolean().default(true),
   priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).default('NORMAL'),
-  targetAssigneeId: z.string().uuid('Hedef kişi zorunludur'),
+  targetAssigneeId: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.string().uuid('Geçersiz hedef kişi ID').optional()
+  ),
 });
 
 export const updateFileSchema = z.object({
@@ -177,6 +180,8 @@ export const fileQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
   /** When true, only files with no target assignee (for assignment pool: not yet sent to Pre-Repro queue) */
   assignmentPoolOnly: z.boolean().optional(),
+  /** Filter by stage (e.g. PRE_REPRO, REPRO) */
+  stage: z.string().optional(),
 });
 
 // File type schemas

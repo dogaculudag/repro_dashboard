@@ -1,6 +1,8 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getPreReproQueue } from '@/lib/services/file.service';
+
+export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileActionButtons } from '@/components/files/file-action-buttons';
 import Link from 'next/link';
@@ -32,7 +34,7 @@ export default async function PreReproQueuePage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Ön Repro Kuyruğu</h1>
         <p className="text-gray-500">
-          Önce <strong>Devral</strong> ile dosyayı alın, sonra <strong>Devret</strong> ile hedef kişiye atayın; dosya o kişinin &quot;Dosyalarım&quot; listesine düşer. Hedef kişi dosya oluşturulurken atanır.
+          Önce <strong>Devral</strong> ile dosyayı alın, sonra <strong>Devret</strong> ile dosyayı hedef kişiye veya (hedef boşsa) Bahar&apos;a gönderin; dosya o kişinin &quot;Dosyalarım&quot; listesine düşer.
         </p>
       </div>
 

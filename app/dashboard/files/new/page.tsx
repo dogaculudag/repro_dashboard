@@ -309,7 +309,7 @@ export default function NewFilePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="targetAssigneeId">Hedef Kişi *</Label>
+                <Label htmlFor="targetAssigneeId">Hedef Kişi</Label>
                 <Select
                   value={formData.targetAssigneeId}
                   onValueChange={(value) => setFormData({ ...formData, targetAssigneeId: value })}
@@ -431,7 +431,7 @@ export default function NewFilePage() {
         <div className="flex gap-4">
           <Button
             type="submit"
-            disabled={loading || !formData.targetAssigneeId || !formData.locationSlotId}
+            disabled={loading || !formData.locationSlotId}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Dosya Oluştur

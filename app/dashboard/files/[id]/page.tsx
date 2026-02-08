@@ -19,13 +19,14 @@ import {
   formatDurationFromMinutes,
   calculateElapsedSeconds,
 } from '@/lib/utils';
-import { FileActions } from '@/components/files/file-actions';
-import { FileActionButtons } from '@/components/files/file-action-buttons';
+import { FileActionsPanel } from '@/components/files/file-actions-panel';
 import { FileInfoCard } from '@/components/files/file-info-card';
 import { FileTimelineCard } from '@/components/files/file-timeline-card';
 import { KsmTechnicalDataForm } from '@/components/files/ksm-technical-data-form';
 import { ArrowLeft, MapPin, User, Clock, Building2, Users } from 'lucide-react';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: { id: string };
@@ -79,18 +80,6 @@ export default async function FileDetailPage({ params }: PageProps) {
           </div>
           <p className="text-muted-foreground">{file.customerName}</p>
         </div>
-        <FileActionButtons
-          file={{
-            id: file.id,
-            assignedDesignerId: file.assignedDesignerId,
-            targetAssigneeId: file.targetAssigneeId ?? null,
-            assignedDesigner: file.assignedDesigner,
-            stage: file.stage,
-          }}
-          currentUserId={session.user.id}
-          size="default"
-          hideClaimButton={file.currentDepartment?.code === 'ONREPRO'}
-        />
       </div>
 
       {/* Info Cards */}
@@ -168,17 +157,24 @@ export default async function FileDetailPage({ params }: PageProps) {
         }}
       />
 
-      {/* Actions */}
-      {actionsForUi.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>İşlemler</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FileActions fileId={file.id} availableActions={actionsForUi} />
-          </CardContent>
-        </Card>
-      )}
+      {/* İşlemler: tek standart yer (Ön Repro + workflow aksiyonları) */}
+      <FileActionsPanel
+        file={{
+          id: file.id,
+          stage: file.stage,
+          status: file.status,
+          assignedDesignerId: file.assignedDesignerId,
+          targetAssigneeId: file.targetAssigneeId ?? null,
+          assignedDesigner: file.assignedDesigner,
+          currentDepartment: file.currentDepartment,
+          pendingTakeover: file.pendingTakeover,
+          requiresApproval: file.requiresApproval,
+        }}
+        fileId={file.id}
+        currentUserId={session.user.id}
+        availableWorkflowActions={actionsForUi}
+        hasActiveTimer={hasTimer}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Timeline: boş title/action kayıtları gizlenir; title boş ama action varsa mapping ile doldurulur */}

@@ -2,6 +2,8 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getDepartmentQueue, getDesignerFiles } from '@/lib/services/file.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+export const dynamic = 'force-dynamic';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

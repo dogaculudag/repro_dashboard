@@ -5,8 +5,9 @@ import { hasPermission } from '@/lib/rbac';
 
 /**
  * GET /api/assignments/pool
- * Returns files awaiting assignment (status AWAITING_ASSIGNMENT).
- * Requires file:assign permission.
+ * Returns files that are at the current user (Bahar atama havuzu).
+ * Sadece Ön Repro'dan Bahar'a devredilmiş dosyalar: stage=REPRO, assignedDesignerId=currentUser.id.
+ * PRE_REPRO (Ön Repro kuyruğundaki) dosyalar burada görünmez.
  */
 export async function GET() {
   try {
@@ -26,11 +27,11 @@ export async function GET() {
     }
 
     const result = await listFiles({
-      status: 'AWAITING_ASSIGNMENT',
-      assignmentPoolOnly: true,
+      stage: 'REPRO',
+      assignedDesignerId: session.user.id,
       page: 1,
       limit: 500,
-      sortBy: 'createdAt',
+      sortBy: 'updatedAt',
       sortOrder: 'desc',
     });
 
