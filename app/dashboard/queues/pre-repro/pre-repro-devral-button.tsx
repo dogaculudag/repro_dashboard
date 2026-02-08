@@ -17,12 +17,17 @@ export function PreReproDevralButton({ fileId }: { fileId: string }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error?.message ?? 'Devral işlemi başarısız');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          (data?.error?.message as string) || `Sunucu hatası (${res.status})`
+        );
       }
-
+      if (!data.success) {
+        throw new Error(
+          (data?.error?.message as string) || 'Devral işlemi başarısız'
+        );
+      }
       toast({
         title: 'Başarılı',
         description: 'Dosyayı devraldınız',

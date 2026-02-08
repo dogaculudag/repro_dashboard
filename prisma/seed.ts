@@ -1,4 +1,4 @@
-import { PrismaClient, Role, FileStatus, Priority, LocationArea } from '@prisma/client';
+import { PrismaClient, Role, FileStatus, Priority, LocationArea, Stage } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -295,10 +295,10 @@ async function main() {
   // ========================================
   console.log('Creating sample files...');
 
-  // File 1: Awaiting Assignment
+  // File 1: Awaiting Assignment (Ön Repro kuyruğunda görünür)
   const file1 = await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0001' },
-    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0, stage: Stage.PRE_REPRO },
     create: {
       fileNo: 'REP-2026-0001',
       customerName: 'ABC Ambalaj A.Ş.',
@@ -310,6 +310,7 @@ async function main() {
         cylinder: 'C-120',
       },
       status: FileStatus.AWAITING_ASSIGNMENT,
+      stage: Stage.PRE_REPRO,
       currentDepartmentId: deptMap.ONREPRO.id,
       currentLocationSlotId: slotMap.A1.id,
       fileTypeId: genelFileType.id,
@@ -332,7 +333,7 @@ async function main() {
   // File 2: In Repro (Active)
   const file2 = await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0002' },
-    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0, stage: Stage.REPRO },
     create: {
       fileNo: 'REP-2026-0002',
       customerName: 'XYZ Plastik Ltd.',
@@ -344,6 +345,7 @@ async function main() {
         cylinder: 'C-080',
       },
       status: FileStatus.IN_REPRO,
+      stage: Stage.REPRO,
       assignedDesignerId: userMap.grafiker1.id,
       currentDepartmentId: deptMap.REPRO.id,
       currentLocationSlotId: slotMap.R1.id,
@@ -363,10 +365,10 @@ async function main() {
     },
   });
 
-  // File 3: Awaiting Assignment (High Priority)
+  // File 3: Awaiting Assignment (High Priority) – Ön Repro kuyruğunda
   await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0003' },
-    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0, stage: Stage.PRE_REPRO },
     create: {
       fileNo: 'REP-2026-0003',
       customerName: 'DEF Gıda San.',
@@ -378,6 +380,7 @@ async function main() {
         cylinder: 'C-100',
       },
       status: FileStatus.AWAITING_ASSIGNMENT,
+      stage: Stage.PRE_REPRO,
       currentDepartmentId: deptMap.ONREPRO.id,
       currentLocationSlotId: slotMap.A2.id,
       fileTypeId: genelFileType.id,
@@ -390,7 +393,7 @@ async function main() {
   // File 4: Customer Approval waiting
   const file4 = await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0004' },
-    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0, stage: Stage.REPRO },
     create: {
       fileNo: 'REP-2026-0004',
       customerName: 'GHI Kozmetik',
@@ -402,6 +405,7 @@ async function main() {
         cylinder: 'C-060',
       },
       status: FileStatus.CUSTOMER_APPROVAL,
+      stage: Stage.REPRO,
       assignedDesignerId: userMap.grafiker2.id,
       currentDepartmentId: deptMap.CUSTOMER.id,
       currentLocationSlotId: slotMap.A5.id,
@@ -425,7 +429,7 @@ async function main() {
   // File 5: In Quality
   const file5 = await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0005' },
-    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0, stage: Stage.REPRO },
     create: {
       fileNo: 'REP-2026-0005',
       customerName: 'JKL Tekstil',
@@ -437,6 +441,7 @@ async function main() {
         cylinder: 'C-150',
       },
       status: FileStatus.IN_QUALITY,
+      stage: Stage.REPRO,
       assignedDesignerId: userMap.grafiker3.id,
       currentDepartmentId: deptMap.KALITE.id,
       currentLocationSlotId: slotMap.Q1.id,
@@ -452,7 +457,7 @@ async function main() {
   // File 6: Completed (Sent to Production)
   await prisma.file.upsert({
     where: { fileNo: 'REP-2026-0006' },
-    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
+    update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0, stage: Stage.DONE },
     create: {
       fileNo: 'REP-2026-0006',
       customerName: 'MNO Kimya',
@@ -464,6 +469,7 @@ async function main() {
         cylinder: 'C-090',
       },
       status: FileStatus.SENT_TO_PRODUCTION,
+      stage: Stage.DONE,
       assignedDesignerId: userMap.grafiker1.id,
       currentDepartmentId: deptMap.KOLAJ.id,
       currentLocationSlotId: null,
@@ -582,15 +588,20 @@ async function main() {
     const designerId = config.assignDesigner ? designers[i % designers.length] : null;
     const slotId = config.slotCode ? slotMap[config.slotCode]?.id : null;
 
+    const stageForExtra =
+      config.departmentCode === 'ONREPRO' ? Stage.PRE_REPRO
+      : config.status === FileStatus.SENT_TO_PRODUCTION ? Stage.DONE
+      : Stage.REPRO;
     const f = await prisma.file.upsert({
       where: { fileNo },
-      update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0 },
+      update: { fileTypeId: genelFileType.id, difficultyLevel: 3, difficultyWeight: 1.0, stage: stageForExtra },
       create: {
         fileNo,
         customerName: cust.name,
         customerNo: cust.no,
         ksmData: ksm,
         status: config.status,
+        stage: stageForExtra,
         assignedDesignerId: designerId,
         currentDepartmentId: deptMap[config.departmentCode].id,
         currentLocationSlotId: slotId,
@@ -694,6 +705,7 @@ async function main() {
         difficultyLevel: 2 + (i % 3),
         difficultyWeight: 0.8 + (i % 5) * 0.1,
         status: FileStatus.AWAITING_ASSIGNMENT,
+        stage: Stage.PRE_REPRO,
         currentDepartmentId: deptMap.ONREPRO.id,
         currentLocationSlotId: slotMap[slotCode].id,
       },
@@ -704,6 +716,7 @@ async function main() {
         orderName: cust.orderName,
         ksmData: ksm,
         status: FileStatus.AWAITING_ASSIGNMENT,
+        stage: Stage.PRE_REPRO,
         currentDepartmentId: deptMap.ONREPRO.id,
         currentLocationSlotId: slotMap[slotCode].id,
         fileTypeId: genelFileType.id,
@@ -726,6 +739,49 @@ async function main() {
   }
 
   console.log('✅ Created 15 files awaiting assignment (atama bekleyen dosyalar)');
+
+  // ========================================
+  // Atama havuzu (Bahar'a devredilmiş – stage=REPRO, assignedDesignerId=Bahar)
+  // ========================================
+  console.log('Creating Bahar atama havuzu files (stage=REPRO, assignedDesignerId=Bahar)...');
+  const baharPoolCustomers = [
+    { name: 'Havuz Müşteri 1', no: 'CUST-056' },
+    { name: 'Havuz Müşteri 2', no: 'CUST-057' },
+    { name: 'Havuz Müşteri 3', no: 'CUST-058' },
+  ];
+  for (let i = 0; i < 3; i++) {
+    const num = 56 + i;
+    const fileNo = `REP-2026-${String(num).padStart(4, '0')}`;
+    const cust = baharPoolCustomers[i];
+    await prisma.file.upsert({
+      where: { fileNo },
+      update: {
+        stage: Stage.REPRO,
+        assignedDesignerId: userMap.bahar.id,
+        status: FileStatus.ASSIGNED,
+        pendingTakeover: true,
+        fileTypeId: genelFileType.id,
+      },
+      create: {
+        fileNo,
+        customerName: cust.name,
+        customerNo: cust.no,
+        orderName: `Atama havuzu ${fileNo}`,
+        ksmData: { width: 1000, height: 700, colors: ['CMYK'], cylinder: 'C-100' },
+        status: FileStatus.ASSIGNED,
+        stage: Stage.REPRO,
+        assignedDesignerId: userMap.bahar.id,
+        pendingTakeover: true,
+        currentDepartmentId: deptMap.REPRO.id,
+        currentLocationSlotId: slotMap.R1.id,
+        fileTypeId: genelFileType.id,
+        difficultyLevel: 3,
+        difficultyWeight: 1.0,
+        priority: Priority.NORMAL,
+      },
+    });
+  }
+  console.log('✅ Created 3 files in Bahar atama havuzu (Atama havuzu sayfasında görünür)');
   console.log(`✅ Created 40 sample files (6 detailed + 34 extra) with timers and notes`);
 
   console.log('');

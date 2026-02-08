@@ -30,14 +30,10 @@ export default async function QueuePage() {
   let pendingTakeover: any[] = [];
 
   if (role === 'GRAFIKER') {
-    // Get designer's assigned files
+    // Get designer's assigned files (PRE_REPRO claimed + REPRO/other stages – single source: assignedDesignerId)
     const designerFiles = await getDesignerFiles(userId);
-    activeFiles = designerFiles.filter((f: any) => !f.pendingTakeover && f.timers?.length > 0);
-    pendingTakeover = designerFiles.filter(
-      (f: any) =>
-        f.pendingTakeover ||
-        (f.status === 'ASSIGNED' || f.status === 'REVISION_REQUIRED') && f.timers?.length === 0
-    );
+    activeFiles = designerFiles.filter((f: any) => (f.timers?.length ?? 0) > 0);
+    pendingTakeover = designerFiles.filter((f: any) => !((f.timers?.length ?? 0) > 0));
   } else {
     const queue = await getDepartmentQueue(departmentId, userId);
     activeFiles = queue.activeFiles;

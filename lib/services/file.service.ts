@@ -639,13 +639,14 @@ export async function getDepartmentQueue(departmentId: string, userId: string) {
 }
 
 /**
- * Get designer's assigned files (only REPRO stage – PRE_REPRO never appears in designer list)
+ * Get designer's assigned files ("Dosyalarım" – single source of truth: assignedDesignerId).
+ * Includes PRE_REPRO (claimed), REPRO (transferred/assigned), and other stages where user is assignee.
+ * Excludes only SENT_TO_PRODUCTION. No stage filter so devral/devret files appear regardless of stage.
  */
 export async function getDesignerFiles(designerId: string) {
   return prisma.file.findMany({
     where: {
       assignedDesignerId: designerId,
-      stage: Stage.REPRO,
       status: { notIn: [FileStatus.SENT_TO_PRODUCTION] },
     },
     include: {
@@ -694,6 +695,7 @@ export async function getPreReproQueue() {
 /**
  * Claim Pre-Repro (Devral): set current assignee to the claiming user.
  * Only allowed when stage is PRE_REPRO and assignedDesignerId is null.
+ * Uses atomic update (where: id + assignedDesignerId null) to prevent double-claim.
  */
 export async function claimPreRepro(fileId: string, userId: string) {
   const file = await getFileById(fileId);
@@ -703,30 +705,36 @@ export async function claimPreRepro(fileId: string, userId: string) {
   if (file.stage !== Stage.PRE_REPRO) {
     throw new Error('Dosya Ön Repro aşamasında değil');
   }
-  if (file.assignedDesignerId != null) {
-    throw new Error('Dosya zaten başka biri tarafından devralınmış');
+
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedFile = await tx.file.update({
+        where: { id: fileId, assignedDesignerId: null },
+        data: { assignedDesignerId: userId },
+        include: {
+          assignedDesigner: { select: { id: true, fullName: true, username: true } },
+          targetAssignee: { select: { id: true, fullName: true, username: true } },
+          currentDepartment: { select: { id: true, name: true, code: true } },
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          fileId,
+          actionType: 'PRE_REPRO_CLAIMED',
+          byUserId: userId,
+          payload: { claimedBy: userId },
+        },
+      });
+      return updatedFile;
+    });
+    return updated;
+  } catch (err: unknown) {
+    const prismaErr = err as { code?: string };
+    if (prismaErr?.code === 'P2025') {
+      throw new Error('Dosya zaten başka biri tarafından devralınmış');
+    }
+    throw err;
   }
-
-  const updated = await prisma.$transaction(async (tx) => {
-    const updatedFile = await tx.file.update({
-      where: { id: fileId },
-      data: { assignedDesignerId: userId },
-      include: {
-        assignedDesigner: { select: { id: true, fullName: true, username: true } },
-        targetAssignee: { select: { id: true, fullName: true, username: true } },
-        currentDepartment: { select: { id: true, name: true, code: true } },
-      },
-    });
-    await createAuditLog({
-      fileId,
-      actionType: 'PRE_REPRO_CLAIMED',
-      byUserId: userId,
-      payload: { claimedBy: userId },
-    });
-    return updatedFile;
-  });
-
-  return updated;
 }
 
 /**

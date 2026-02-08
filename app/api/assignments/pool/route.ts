@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import { listFiles } from '@/lib/services/file.service';
 import { hasPermission } from '@/lib/rbac';
 
@@ -25,6 +26,11 @@ export async function GET() {
         { status: 403 }
       );
     }
+
+    // [DEBUG] File counts – remove after root-cause verification
+    const totalFiles = await prisma.file.count();
+    const byStage = await prisma.file.groupBy({ by: ['stage'], _count: true });
+    console.log('[DEBUG /api/assignments/pool] File total:', totalFiles, 'byStage:', JSON.stringify(byStage));
 
     const result = await listFiles({
       stage: 'REPRO',

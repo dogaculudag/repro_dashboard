@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { returnPreReproToQueue } from '@/lib/services/file.service';
 
@@ -26,6 +27,8 @@ export async function POST(
     const fileId = params.id;
     const file = await returnPreReproToQueue(fileId, session.user.id);
 
+    revalidatePath('/dashboard/queues/pre-repro');
+    revalidatePath('/dashboard/queue');
     return NextResponse.json({ success: true, data: file });
   } catch (error: unknown) {
     console.error('POST /api/files/[id]/pre-repro/return-to-queue error:', error);
