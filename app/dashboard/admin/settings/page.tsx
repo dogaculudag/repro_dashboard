@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Clock, Building2 } from 'lucide-react';
+import { MapPin, Clock } from 'lucide-react';
+import { DepartmentsList } from '@/components/admin/departments-list';
 
 const AREA_LABELS: Record<string, string> = {
   WAITING: 'Bekleme',
@@ -47,24 +48,7 @@ export default async function AdminSettingsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Departmanlar
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {departments.map((d) => (
-                <li key={d.id} className="flex justify-between items-center py-2 border-b last:border-0">
-                  <span>{d.name}</span>
-                  <Badge variant="outline">{d.code}</Badge>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <DepartmentsList departments={departments} />
 
         <Card>
           <CardHeader>
