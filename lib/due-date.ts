@@ -37,3 +37,48 @@ export function getDueBadgeVariant(daysLeft: number): DueBadgeVariant {
   if (daysLeft >= 2) return 'orange';
   return 'red';
 }
+
+export type DueSortMode = 'NEAREST' | 'FARTHEST';
+
+const now = () => new Date();
+
+/**
+ * Sıralama için tier: null en sonda, overdue/future tier'a göre.
+ * NEAREST: null last, then dueDate asc (overdue first, then nearest future).
+ * FARTHEST: future first (dueDate desc), then overdue, then null last.
+ */
+export function sortByDueDate<T>(
+  files: T[],
+  getDueDate: (f: T) => Date | string | null | undefined,
+  mode: DueSortMode
+): T[] {
+  const n = now();
+  const toTime = (d: Date | string | null | undefined): number => {
+    if (d == null) return NaN;
+    const t = new Date(d).getTime();
+    return Number.isNaN(t) ? NaN : t;
+  };
+  return [...files].sort((a, b) => {
+    const da = getDueDate(a);
+    const ta = toTime(da);
+    const tb = toTime(getDueDate(b));
+    const aNull = Number.isNaN(ta);
+    const bNull = Number.isNaN(tb);
+    if (aNull && bNull) return 0;
+    if (aNull) return 1;
+    if (bNull) return -1;
+    const aOverdue = ta < n.getTime();
+    const bOverdue = tb < n.getTime();
+    if (mode === 'NEAREST') {
+      if (aOverdue && bOverdue) return ta - tb;
+      if (aOverdue) return -1;
+      if (bOverdue) return 1;
+      return ta - tb;
+    }
+    // FARTHEST: future first (desc), then overdue, then null (already handled)
+    if (!aOverdue && !bOverdue) return tb - ta;
+    if (!aOverdue) return -1;
+    if (!bOverdue) return 1;
+    return tb - ta;
+  });
+}

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { STATUS_LABELS, STATUS_COLORS, PRIORITY_LABELS } from '@/lib/utils';
+import { sortByDueDate } from '@/lib/due-date';
 import { Plus, Search } from 'lucide-react';
 import { FilesRow } from './files-row';
 
@@ -28,6 +29,7 @@ export default async function FilesPage({ searchParams }: PageProps) {
   const fileTypeId = searchParams.fileTypeId as string | undefined;
   const assignedDesignerId = searchParams.assignedDesignerId as string | undefined;
   const difficultyLevel = searchParams.difficultyLevel as string | undefined;
+  const dueSort = (searchParams.dueSort as string) === 'FARTHEST' ? 'FARTHEST' : (searchParams.dueSort as string) === 'NEAREST' ? 'NEAREST' : null;
 
   const where: Record<string, unknown> = {};
   if (search) {
@@ -42,27 +44,62 @@ export default async function FilesPage({ searchParams }: PageProps) {
   if (assignedDesignerId) where.assignedDesignerId = assignedDesignerId;
   if (difficultyLevel) where.difficultyLevel = parseInt(difficultyLevel, 10);
 
-  const [files, total, fileTypes, designers, departments] = await Promise.all([
-    prisma.file.findMany({
-      where,
-      include: {
-        assignedDesigner: { select: { id: true, fullName: true } },
-        targetAssignee: { select: { id: true, fullName: true } },
-        currentDepartment: { select: { id: true, name: true, code: true } },
-        currentLocationSlot: { select: { id: true, code: true, name: true } },
-        fileType: { select: { id: true, name: true } },
-      },
-      orderBy: { updatedAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.file.count({ where }),
+  const include = {
+    assignedDesigner: { select: { id: true, fullName: true } },
+    targetAssignee: { select: { id: true, fullName: true } },
+    currentDepartment: { select: { id: true, name: true, code: true } },
+    currentLocationSlot: { select: { id: true, code: true, name: true } },
+    fileType: { select: { id: true, name: true } },
+  };
+
+  let files: Awaited<ReturnType<typeof prisma.file.findMany<{ include: typeof include }>>>;
+  let total: number;
+
+  if (dueSort) {
+    const [allFiles, totalCount] = await Promise.all([
+      prisma.file.findMany({ where, include }),
+      prisma.file.count({ where }),
+    ]);
+    total = totalCount;
+    const sorted = sortByDueDate(allFiles, (f) => f.dueDate, dueSort);
+    files = sorted.slice((page - 1) * limit, page * limit);
+  } else {
+    const [filesList, totalCount] = await Promise.all([
+      prisma.file.findMany({
+        where,
+        include,
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.file.count({ where }),
+    ]);
+    files = filesList;
+    total = totalCount;
+  }
+
+  const [fileTypes, designers, departments] = await Promise.all([
     session.user.role === 'ADMIN' ? prisma.fileType.findMany({ orderBy: { name: 'asc' } }) : [],
     session.user.role === 'ADMIN' ? prisma.user.findMany({ where: { isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } }) : [],
     prisma.department.findMany({ select: { id: true, name: true, code: true }, orderBy: { sortOrder: 'asc' } }),
   ]);
 
   const totalPages = Math.ceil(total / limit);
+
+  function buildQuery(overrides?: { page?: number }) {
+    const p = overrides?.page ?? page;
+    const params = new URLSearchParams();
+    if (p > 1) params.set('page', String(p));
+    if (search) params.set('search', search);
+    if (status) params.set('status', status);
+    if (departmentId) params.set('departmentId', departmentId);
+    if (fileTypeId) params.set('fileTypeId', fileTypeId);
+    if (assignedDesignerId) params.set('assignedDesignerId', assignedDesignerId);
+    if (difficultyLevel) params.set('difficultyLevel', difficultyLevel);
+    if (dueSort) params.set('dueSort', dueSort);
+    const q = params.toString();
+    return q ? `?${q}` : '';
+  }
 
   return (
     <div className="space-y-6">
@@ -109,6 +146,11 @@ export default async function FilesPage({ searchParams }: PageProps) {
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
+            </select>
+            <select name="dueSort" defaultValue={dueSort ?? ''} className="border rounded-md px-3 py-2" aria-label="Termin">
+              <option value="">Termin</option>
+              <option value="NEAREST">Termini yaklaşanlar</option>
+              <option value="FARTHEST">Termini en uzakta olanlar</option>
             </select>
             {session.user.role === 'ADMIN' && (
               <>
@@ -162,7 +204,7 @@ export default async function FilesPage({ searchParams }: PageProps) {
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-6">
               {page > 1 && (
-                <Link href={`/dashboard/files?page=${page - 1}${search ? `&search=${search}` : ''}${status ? `&status=${status}` : ''}`}>
+                <Link href={`/dashboard/files${buildQuery({ page: page - 1 })}`}>
                   <Button variant="outline" size="sm">Önceki</Button>
                 </Link>
               )}
@@ -170,7 +212,7 @@ export default async function FilesPage({ searchParams }: PageProps) {
                 Sayfa {page} / {totalPages}
               </span>
               {page < totalPages && (
-                <Link href={`/dashboard/files?page=${page + 1}${search ? `&search=${search}` : ''}${status ? `&status=${status}` : ''}`}>
+                <Link href={`/dashboard/files${buildQuery({ page: page + 1 })}`}>
                   <Button variant="outline" size="sm">Sonraki</Button>
                 </Link>
               )}
