@@ -96,7 +96,7 @@ export default async function QueuePage() {
                 return (
                   <Link
                     key={file.id}
-                    href={`/dashboard/files/${file.id}`}
+                    href={`/dashboard/files/${file.id}?from=${encodeURIComponent('/dashboard/queue')}`}
                     className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
@@ -159,7 +159,7 @@ export default async function QueuePage() {
                     <p className="text-sm text-muted-foreground">{file.customerName}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Link href={`/dashboard/files/${file.id}`}>
+                    <Link href={`/dashboard/files/${file.id}?from=${encodeURIComponent('/dashboard/queue')}`}>
                       <Button size="sm" variant="outline">
                         Detay
                       </Button>

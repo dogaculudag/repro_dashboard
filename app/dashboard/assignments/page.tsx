@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,10 @@ import {
 
 export default function AssignmentsPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const qs = searchParams.toString();
+  const currentPath = `${pathname}${qs ? `?${qs}` : ''}`;
   const [files, setFiles] = useState<any[]>([]);
   const [designers, setDesigners] = useState<any[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -238,7 +242,7 @@ export default function AssignmentsPage() {
 
                   {/* Dosya bilgisi: tıklanınca detay sayfasına git */}
                   <Link
-                    href={`/dashboard/files/${file.id}`}
+                    href={`/dashboard/files/${file.id}?from=${encodeURIComponent(currentPath)}`}
                     className="flex-1 min-w-0 flex items-center gap-4 group cursor-pointer"
                   >
                     <div className="flex-1 min-w-0">

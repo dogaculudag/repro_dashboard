@@ -222,7 +222,7 @@ export default async function DashboardPage() {
               {data.recentFiles.map((file: any) => (
                 <Link
                   key={file.id}
-                  href={`/dashboard/files/${file.id}`}
+                  href={`/dashboard/files/${file.id}?from=${encodeURIComponent('/dashboard')}`}
                   className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-4">
@@ -261,7 +261,7 @@ export default async function DashboardPage() {
               {data.overdueFiles.map((file: any) => (
                 <Link
                   key={file.id}
-                  href={`/dashboard/files/${file.id}`}
+                  href={`/dashboard/files/${file.id}?from=${encodeURIComponent('/dashboard')}`}
                   className="flex items-center justify-between p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors"
                 >
                   <div>

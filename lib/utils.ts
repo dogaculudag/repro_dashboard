@@ -6,6 +6,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Sanitizes a "return to" path coming from query params (e.g. `?from=`).
+ * Prevents open redirects by only allowing same-origin paths.
+ */
+export function sanitizeReturnPath(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const value = input.trim();
+  if (!value) return null;
+
+  // Must be an absolute path on this origin ("/..."), not protocol-relative ("//...") or full URL.
+  if (!value.startsWith('/')) return null;
+  if (value.startsWith('//')) return null;
+  if (value.includes('://')) return null;
+
+  // Disallow backslashes and control chars.
+  if (/[\\\r\n\t]/.test(value)) return null;
+
+  return value;
+}
+
 // Timezone configuration
 const TIMEZONE = 'Europe/Istanbul';
 

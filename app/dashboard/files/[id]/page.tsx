@@ -19,6 +19,7 @@ import {
   formatDuration,
   formatDurationFromMinutes,
   calculateElapsedSeconds,
+  sanitizeReturnPath,
 } from '@/lib/utils';
 import { FileActionsPanel } from '@/components/files/file-actions-panel';
 import { FileInfoCard } from '@/components/files/file-info-card';
@@ -31,13 +32,18 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: { id: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default async function FileDetailPage({ params }: PageProps) {
+export default async function FileDetailPage({ params, searchParams }: PageProps) {
   const session = await auth();
   if (!session?.user) {
     redirect('/login');
   }
+
+  const fromParamRaw = searchParams?.from;
+  const fromParam = sanitizeReturnPath(Array.isArray(fromParamRaw) ? fromParamRaw[0] : fromParamRaw);
+  const backHref = fromParam ?? '/dashboard/queue';
 
   const [file, timers, notes, logs] = await Promise.all([
     getFileById(params.id),
@@ -61,7 +67,7 @@ export default async function FileDetailPage({ params }: PageProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/files" className="text-muted-foreground hover:text-foreground">
+        <Link href={backHref} className="text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex-1">
@@ -155,6 +161,7 @@ export default async function FileDetailPage({ params }: PageProps) {
           requiresApproval: file.requiresApproval,
         }}
         canEditTermin={session.user.role === 'ADMIN' || session.user.role === 'ONREPRO'}
+        canEditPriority={session.user.role === 'ADMIN' || session.user.role === 'ONREPRO'}
       />
 
       {/* İşlemler: tek standart yer (Ön Repro + workflow aksiyonları) */}

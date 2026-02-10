@@ -58,7 +58,7 @@ export default async function PreReproQueuePage() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
-                        href={`/dashboard/files/${file.id}`}
+                        href={`/dashboard/files/${file.id}?from=${encodeURIComponent('/dashboard/queues/pre-repro')}`}
                         className="font-semibold text-primary hover:underline"
                       >
                         {file.fileNo}

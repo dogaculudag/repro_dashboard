@@ -31,7 +31,15 @@ type FileForInfo = {
   requiresApproval: boolean;
 };
 
-export function FileInfoCard({ file, canEditTermin = false }: { file: FileForInfo; canEditTermin?: boolean }) {
+export function FileInfoCard({
+  file,
+  canEditTermin = false,
+  canEditPriority = false,
+}: {
+  file: FileForInfo;
+  canEditTermin?: boolean;
+  canEditPriority?: boolean;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -71,10 +79,10 @@ export function FileInfoCard({ file, canEditTermin = false }: { file: FileForInf
         orderName: formData.orderName || null,
         designNo: formData.designNo || null,
         revisionNo: formData.revisionNo || null,
-        priority: formData.priority,
         requiresApproval: formData.requiresApproval,
       };
-      body.dueDate = formData.dueDate || null;
+      if (canEditPriority) body.priority = formData.priority;
+      if (canEditTermin) body.dueDate = formData.dueDate || null;
 
       const res = await fetch(`/api/files/${file.id}`, {
         method: 'PATCH',
@@ -218,17 +226,21 @@ export function FileInfoCard({ file, canEditTermin = false }: { file: FileForInf
             </div>
             <div className="space-y-2">
               <Label>Öncelik</Label>
-              <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="LOW">Düşük</SelectItem>
-                  <SelectItem value="NORMAL">Normal</SelectItem>
-                  <SelectItem value="HIGH">Yüksek</SelectItem>
-                  <SelectItem value="URGENT">Acil</SelectItem>
-                </SelectContent>
-              </Select>
+              {canEditPriority ? (
+                <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOW">Düşük</SelectItem>
+                    <SelectItem value="NORMAL">Normal</SelectItem>
+                    <SelectItem value="HIGH">Öncelikli</SelectItem>
+                    <SelectItem value="URGENT">Acil</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="font-medium py-2">{PRIORITY_LABELS[formData.priority] ?? formData.priority}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Termin</Label>

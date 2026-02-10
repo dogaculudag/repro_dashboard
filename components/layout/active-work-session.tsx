@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { formatDuration, formatDurationFromMinutes } from '@/lib/utils';
@@ -29,6 +29,10 @@ type WorkSessionActive = {
 
 export function ActiveWorkSessionBanner() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const qs = searchParams.toString();
+  const currentPath = `${pathname}${qs ? `?${qs}` : ''}`;
   const [timeEntry, setTimeEntry] = useState<TimeEntryActive | null>(null);
   const [workSession, setWorkSession] = useState<WorkSessionActive | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,6 +108,7 @@ export function ActiveWorkSessionBanner() {
   const durationDisplay = timeEntry
     ? formatDuration(elapsedSeconds)
     : formatDurationFromMinutes(elapsedMinutes);
+  const detailHref = `/dashboard/files/${fileId}?from=${encodeURIComponent(currentPath)}`;
 
   return (
     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 sm:px-6 lg:px-8">
@@ -113,7 +118,7 @@ export function ActiveWorkSessionBanner() {
           <span className="text-sm font-medium text-amber-900">
             Şu an çalışıyorsunuz:{' '}
             <Link
-              href={`/dashboard/files/${fileId}`}
+              href={detailHref}
               className="underline hover:no-underline"
             >
               {file.fileNo}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,11 @@ export function FilesRow({
   designers: DesignerOption[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const qs = searchParams.toString();
+  const currentPath = `${pathname}${qs ? `?${qs}` : ''}`;
+  const detailHref = `/dashboard/files/${file.id}?from=${encodeURIComponent(currentPath)}`;
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -89,7 +94,7 @@ export function FilesRow({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <Link href={`/dashboard/files/${file.id}`} className="font-semibold hover:underline">
+            <Link href={detailHref} className="font-semibold hover:underline">
               {file.fileNo}
             </Link>
             <Badge className={STATUS_COLORS[file.status as keyof typeof STATUS_COLORS]}>
@@ -157,7 +162,7 @@ export function FilesRow({
               </Button>
             </div>
           )}
-          <Link href={`/dashboard/files/${file.id}`}>
+          <Link href={detailHref}>
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </Link>
         </div>
@@ -170,6 +175,7 @@ export function FilesRow({
               value={form.fileTypeId}
               onChange={(e) => setForm((f) => ({ ...f, fileTypeId: e.target.value }))}
               className="w-full border rounded px-2 py-1.5 text-sm mt-0.5"
+              aria-label="Dosya tipi"
             >
               <option value="">—</option>
               {fileTypes.map((ft) => (
@@ -183,6 +189,7 @@ export function FilesRow({
               value={form.assignedUserId}
               onChange={(e) => setForm((f) => ({ ...f, assignedUserId: e.target.value }))}
               className="w-full border rounded px-2 py-1.5 text-sm mt-0.5"
+              aria-label="Sorumlu"
             >
               <option value="">—</option>
               {designers.map((u) => (
@@ -196,6 +203,7 @@ export function FilesRow({
               value={form.difficultyLevel}
               onChange={(e) => setForm((f) => ({ ...f, difficultyLevel: e.target.value }))}
               className="w-full border rounded px-2 py-1.5 text-sm mt-0.5"
+              aria-label="Zorluk (1-5)"
             >
               {[1, 2, 3, 4, 5].map((n) => (
                 <option key={n} value={n}>{n}</option>

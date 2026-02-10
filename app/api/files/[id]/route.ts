@@ -50,11 +50,18 @@ export async function PATCH(
 
     const body = await request.json();
     let validatedData = updateFileSchema.parse(body);
+    const canUpdateTerminOrPriority = session.user.role === 'ADMIN' || session.user.role === 'ONREPRO';
     // Only Bahar (ONREPRO) and ADMIN can update Termin (dueDate via terminAt)
-    const canUpdateTermin = session.user.role === 'ADMIN' || session.user.role === 'ONREPRO';
-    if (!canUpdateTermin && 'terminAt' in validatedData) {
+    if (!canUpdateTerminOrPriority && 'terminAt' in validatedData) {
       const { terminAt: _, ...rest } = validatedData;
       validatedData = rest;
+    }
+    // Only Bahar (ONREPRO) and ADMIN can update Öncelik (priority)
+    if (!canUpdateTerminOrPriority && 'priority' in validatedData) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Öncelik değiştirme yetkiniz yok' } },
+        { status: 403 }
+      );
     }
 
     const file = await updateFile(params.id, validatedData, session.user.id);
