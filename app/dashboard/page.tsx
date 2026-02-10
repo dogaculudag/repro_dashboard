@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { FileStatus } from '@prisma/client';
+import { countAssignmentPoolForUser, getMyWorkCounts } from '@/lib/services/file.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDisplayDate, STATUS_LABELS, PRIORITY_COLORS } from '@/lib/utils';
 import Link from 'next/link';
@@ -26,9 +27,7 @@ async function getDashboardData(role: string, userId: string, departmentId: stri
       overdueFiles,
       recentFiles,
     ] = await Promise.all([
-      prisma.file.count({
-        where: { status: FileStatus.AWAITING_ASSIGNMENT },
-      }),
+      countAssignmentPoolForUser(userId),
       prisma.file.count({
         where: { status: { notIn: [FileStatus.SENT_TO_PRODUCTION, FileStatus.AWAITING_ASSIGNMENT] } },
       }),
@@ -72,24 +71,12 @@ async function getDashboardData(role: string, userId: string, departmentId: stri
     };
   }
 
-  // For other roles, show their specific queue
-  const [myActiveFiles, pendingTakeover] = await Promise.all([
-    prisma.file.count({
-      where: {
-        currentDepartmentId: departmentId,
-        pendingTakeover: false,
-        status: { notIn: [FileStatus.SENT_TO_PRODUCTION] },
-        ...(role === 'GRAFIKER' && { assignedDesignerId: userId }),
-      },
-    }),
-    prisma.file.count({
-      where: {
-        currentDepartmentId: departmentId,
-        pendingTakeover: true,
-        ...(role === 'GRAFIKER' && { assignedDesignerId: userId }),
-      },
-    }),
-  ]);
+  // Non-admin "Üzerindeki işler / Devir bekleyen" should match `/dashboard/queue` exactly.
+  const { activeCount: myActiveFiles, pendingCount: pendingTakeover } = await getMyWorkCounts(
+    role,
+    userId,
+    departmentId
+  );
 
   const recentFiles = await prisma.file.findMany({
     where: {
@@ -285,5 +272,5 @@ export default async function DashboardPage() {
         </Card>
       )}
     </div>
-  );
+  );    
 }

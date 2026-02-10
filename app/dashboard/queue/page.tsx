@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getDepartmentQueue, getDesignerFiles } from '@/lib/services/file.service';
+import { getMyWorkQueue } from '@/lib/services/file.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const dynamic = 'force-dynamic';
@@ -26,19 +26,9 @@ export default async function QueuePage() {
 
   const { role, id: userId, departmentId } = session.user;
 
-  let activeFiles: any[] = [];
-  let pendingTakeover: any[] = [];
-
-  if (role === 'GRAFIKER') {
-    // Get designer's assigned files (PRE_REPRO claimed + REPRO/other stages – single source: assignedDesignerId)
-    const designerFiles = await getDesignerFiles(userId);
-    activeFiles = designerFiles.filter((f: any) => (f.timers?.length ?? 0) > 0);
-    pendingTakeover = designerFiles.filter((f: any) => !((f.timers?.length ?? 0) > 0));
-  } else {
-    const queue = await getDepartmentQueue(departmentId, userId);
-    activeFiles = queue.activeFiles;
-    pendingTakeover = queue.pendingTakeover;
-  }
+  const queue = await getMyWorkQueue(role, userId, departmentId);
+  const activeFiles = queue.activeFiles;
+  const pendingTakeover = queue.pendingTakeover;
 
   return (
     <div className="space-y-6">

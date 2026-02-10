@@ -208,6 +208,8 @@ model File {
   iterationNumber       Int        @default(1) @map("iteration_number")
   iterationLabel        String     @default("MG1") @map("iteration_label") @db.VarChar(20)
   pendingTakeover       Boolean    @default(false) @map("pending_takeover")
+  skipQualityAfterCustomerOk Boolean @default(false) @map("skip_quality_after_customer_ok")
+  qualityNokReturn      Boolean    @default(false) @map("quality_nok_return")
   requiresApproval      Boolean    @default(true) @map("requires_approval")
   priority              Priority   @default(NORMAL)
   createdAt             DateTime   @default(now()) @map("created_at")

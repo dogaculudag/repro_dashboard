@@ -20,11 +20,50 @@ export async function requestApproval(
   if (!file) throw new Error('Dosya bulunamadı');
   if (file.status !== FileStatus.IN_REPRO) throw new Error('Dosya uygun durumda değil');
   if (file.assignedDesignerId !== userId) throw new Error('Bu dosya size atanmamış');
-  if (!file.requiresApproval) throw new Error('Bu dosya onay gerektirmiyor');
 
   // Stop current timer and work session (dosya departmandan çıkıyor)
   await stopActiveTimerForFile(fileId);
   await stopWork(userId).catch(() => {});
+
+  // Kalite RED'den dönen dosya: REPRO bitişi direkt KOLAJ'a
+  if (file.qualityNokReturn === true) {
+    const kolajDept = await prisma.department.findUnique({ where: { code: 'KOLAJ' } });
+    if (!kolajDept) throw new Error('Kolaj departmanı bulunamadı');
+
+    const updatedFile = await prisma.file.update({
+      where: { id: fileId },
+      data: {
+        status: FileStatus.IN_KOLAJ,
+        currentDepartmentId: kolajDept.id,
+        pendingTakeover: true,
+        qualityNokReturn: false,
+      },
+    });
+
+    await createAuditLog({
+      fileId,
+      actionType: 'TRANSFER',
+      byUserId: userId,
+      fromDepartmentId: file.currentDepartmentId,
+      toDepartmentId: kolajDept.id,
+      payload: { action: 'REPRO_DONE_AFTER_QUALITY_NOK_TO_KOLAJ', note },
+    });
+
+    if (note) {
+      await prisma.note.create({
+        data: {
+          fileId,
+          userId,
+          departmentId: file.currentDepartmentId,
+          message: note,
+        },
+      });
+    }
+
+    return updatedFile;
+  }
+
+  if (!file.requiresApproval) throw new Error('Bu dosya onay gerektirmiyor');
 
   // Get Önrepro department
   const onreproDept = await prisma.department.findUnique({ where: { code: 'ONREPRO' } });
@@ -139,11 +178,47 @@ export async function customerOk(
   await stopActiveTimerForFile(fileId);
   await stopWork(userId).catch(() => {});
 
-  // Get Quality department
   const kaliteDept = await prisma.department.findUnique({ where: { code: 'KALITE' } });
   if (!kaliteDept) throw new Error('Kalite departmanı bulunamadı');
 
-  // Update file
+  const kolajDept = await prisma.department.findUnique({ where: { code: 'KOLAJ' } });
+  if (!kolajDept) throw new Error('Kolaj departmanı bulunamadı');
+
+  if (file.skipQualityAfterCustomerOk === true) {
+    const updatedFile = await prisma.file.update({
+      where: { id: fileId },
+      data: {
+        status: FileStatus.IN_KOLAJ,
+        currentDepartmentId: kolajDept.id,
+        pendingTakeover: true,
+        skipQualityAfterCustomerOk: false,
+      },
+    });
+
+    await createAuditLog({
+      fileId,
+      actionType: 'CUSTOMER_OK',
+      byUserId: userId,
+      fromDepartmentId: file.currentDepartmentId,
+      toDepartmentId: kolajDept.id,
+      payload: { note, skipQuality: true },
+    });
+
+    if (note) {
+      await prisma.note.create({
+        data: {
+          fileId,
+          userId,
+          departmentId: userDepartmentId,
+          message: `Müşteri onayladı: ${note}`,
+        },
+      });
+    }
+
+    return updatedFile;
+  }
+
+  // Normal flow: CUSTOMER_OK -> KALİTE
   const updatedFile = await prisma.file.update({
     where: { id: fileId },
     data: {
@@ -379,6 +454,8 @@ export async function qualityNok(
       status: FileStatus.REVISION_REQUIRED,
       currentDepartmentId: reproDept.id,
       pendingTakeover: true,
+      skipQualityAfterCustomerOk: true,
+      qualityNokReturn: true,
     },
   });
 

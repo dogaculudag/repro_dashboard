@@ -583,6 +583,20 @@ export async function getUnassignedFiles() {
 }
 
 /**
+ * Count files in the assignment pool for a given user (e.g. Bahar).
+ * Source of truth for both dashboard \"Atama Bekliyor\" and atama havuzu:
+ * stage = REPRO AND assignedDesignerId = userId
+ */
+export async function countAssignmentPoolForUser(userId: string) {
+  return prisma.file.count({
+    where: {
+      stage: Stage.REPRO,
+      assignedDesignerId: userId,
+    },
+  });
+}
+
+/**
  * Get files for department queue
  */
 export async function getDepartmentQueue(departmentId: string, userId: string) {
@@ -629,6 +643,108 @@ export async function getDepartmentQueue(departmentId: string, userId: string) {
         },
       },
       orderBy: { updatedAt: 'desc' },
+    }),
+  ]);
+
+  return { activeFiles, pendingTakeover };
+}
+
+function roleUsesAssignedDesigner(role: string) {
+  // Roles where "Dosyalarım" should mean "assigned to me" (assignedDesignerId) within my department.
+  // Other roles (e.g. KALITE/KOLAJ) are department-queue based.
+  return role === 'GRAFIKER' || role === 'ONREPRO' || role === 'ADMIN';
+}
+
+/**
+ * "Dosyalarım" stats for Dashboard cards.
+ * Single source of truth shared with `/dashboard/queue`.
+ *
+ * Active = I have an active timer (endTime=null) on a file in my department.
+ * Pending = depends on role:
+ * - GRAFIKER/ONREPRO/ADMIN: assignedDesignerId = me, file currently in my department, and no active timer on that file.
+ * - Other roles: department pendingTakeover queue size (currentDepartmentId + pendingTakeover=true).
+ */
+export async function getMyWorkCounts(role: string, userId: string, departmentId: string) {
+  if (roleUsesAssignedDesigner(role)) {
+    const [activeCount, pendingCount] = await Promise.all([
+      prisma.file.count({
+        where: {
+          currentDepartmentId: departmentId,
+          assignedDesignerId: userId,
+          status: { notIn: [FileStatus.SENT_TO_PRODUCTION] },
+          timers: { some: { userId, endTime: null } },
+        },
+      }),
+      prisma.file.count({
+        where: {
+          currentDepartmentId: departmentId,
+          assignedDesignerId: userId,
+          status: { notIn: [FileStatus.SENT_TO_PRODUCTION] },
+          timers: { none: { endTime: null } },
+        },
+      }),
+    ]);
+    return { activeCount, pendingCount };
+  }
+
+  const [activeCount, pendingCount] = await Promise.all([
+    prisma.file.count({
+      where: {
+        currentDepartmentId: departmentId,
+        pendingTakeover: false,
+        status: { notIn: [FileStatus.SENT_TO_PRODUCTION] },
+        timers: { some: { userId, endTime: null } },
+      },
+    }),
+    prisma.file.count({
+      where: {
+        currentDepartmentId: departmentId,
+        pendingTakeover: true,
+      },
+    }),
+  ]);
+
+  return { activeCount, pendingCount };
+}
+
+/**
+ * "Dosyalarım" list data for `/dashboard/queue`.
+ * Single source of truth shared with Dashboard card counts.
+ */
+export async function getMyWorkQueue(role: string, userId: string, departmentId: string) {
+  if (!roleUsesAssignedDesigner(role)) {
+    return getDepartmentQueue(departmentId, userId);
+  }
+
+  const include = {
+    currentLocationSlot: { select: { id: true, code: true, name: true } },
+    currentDepartment: { select: { id: true, name: true, code: true } },
+    timers: {
+      where: { userId, endTime: null },
+      take: 1,
+    },
+  } as const;
+
+  const [activeFiles, pendingTakeover] = await Promise.all([
+    prisma.file.findMany({
+      where: {
+        currentDepartmentId: departmentId,
+        assignedDesignerId: userId,
+        status: { notIn: [FileStatus.SENT_TO_PRODUCTION] },
+        timers: { some: { userId, endTime: null } },
+      },
+      include,
+      orderBy: [{ priority: 'desc' }, { updatedAt: 'desc' }],
+    }),
+    prisma.file.findMany({
+      where: {
+        currentDepartmentId: departmentId,
+        assignedDesignerId: userId,
+        status: { notIn: [FileStatus.SENT_TO_PRODUCTION] },
+        timers: { none: { endTime: null } },
+      },
+      include,
+      orderBy: [{ priority: 'desc' }, { updatedAt: 'desc' }],
     }),
   ]);
 
@@ -722,6 +838,20 @@ export async function claimPreRepro(fileId: string, userId: string) {
           payload: { claimedBy: userId },
         },
       });
+      // Devralınca otomatik timer başlat: "Üzerinde Çalıştıklarım"da görünsün
+      const activeTimer = await tx.timer.findFirst({
+        where: { fileId, endTime: null },
+      });
+      if (!activeTimer) {
+        await tx.timer.create({
+          data: {
+            fileId,
+            departmentId: updatedFile.currentDepartmentId,
+            userId,
+            startTime: new Date(),
+          },
+        });
+      }
       return updatedFile;
     });
     return updated;
