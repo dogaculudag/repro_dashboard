@@ -68,7 +68,6 @@ export async function createFile(
       targetAssigneeId: input.targetAssigneeId,
       assignedDesignerId: null,
       currentDepartmentId: onreproDept.id,
-      currentLocationSlotId: input.locationSlotId,
       fileTypeId: genelFileType?.id ?? undefined,
       difficultyLevel: 3,
       difficultyWeight: 1.0,
@@ -278,8 +277,8 @@ export async function updateFile(
   if (input.designNo !== undefined) data.designNo = input.designNo;
   if (input.revisionNo !== undefined) data.revisionNo = input.revisionNo;
   if (input.dueDate !== undefined) data.dueDate = input.dueDate;
+  if (input.terminAt !== undefined) data.dueDate = input.terminAt ?? null;
   if (input.ksmData !== undefined) data.ksmData = input.ksmData ?? Prisma.JsonNull;
-  if (input.locationSlotId) data.currentLocationSlot = { connect: { id: input.locationSlotId } };
   if (input.priority) data.priority = input.priority as Priority;
   if (input.requiresApproval !== undefined) data.requiresApproval = input.requiresApproval;
 
@@ -468,7 +467,6 @@ export async function takeoverFile(
   fileId: string,
   userId: string,
   userDepartmentId: string,
-  locationSlotId?: string,
   note?: string
 ) {
   const file = await prisma.file.findUnique({
@@ -521,7 +519,6 @@ export async function takeoverFile(
       status: newStatus,
       currentDepartmentId: userDepartmentId,
       pendingTakeover: false,
-      ...(locationSlotId && { currentLocationSlotId: locationSlotId }),
     },
     include: {
       assignedDesigner: {

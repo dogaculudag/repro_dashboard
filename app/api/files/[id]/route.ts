@@ -49,7 +49,13 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const validatedData = updateFileSchema.parse(body);
+    let validatedData = updateFileSchema.parse(body);
+    // Only Bahar (ONREPRO) and ADMIN can update Termin (dueDate via terminAt)
+    const canUpdateTermin = session.user.role === 'ADMIN' || session.user.role === 'ONREPRO';
+    if (!canUpdateTermin && 'terminAt' in validatedData) {
+      const { terminAt: _, ...rest } = validatedData;
+      validatedData = rest;
+    }
 
     const file = await updateFile(params.id, validatedData, session.user.id);
 

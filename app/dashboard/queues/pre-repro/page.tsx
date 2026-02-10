@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileActionButtons } from '@/components/files/file-action-buttons';
 import Link from 'next/link';
 import { formatDisplayDate } from '@/lib/utils';
+import { DueBadge } from '@/components/files/due-badge';
 
 /** Pre-repro queue row shape (getPreReproQueue includes these relations at runtime) */
 type PreReproRow = Awaited<ReturnType<typeof getPreReproQueue>>[number] & {
@@ -55,21 +56,19 @@ export default async function PreReproQueuePage() {
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <div>
-                    <Link
-                      href={`/dashboard/files/${file.id}`}
-                      className="font-semibold text-primary hover:underline"
-                    >
-                      {file.fileNo}
-                    </Link>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Link
+                        href={`/dashboard/files/${file.id}`}
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        {file.fileNo}
+                      </Link>
+                      <DueBadge dueDate={file.dueDate} />
+                    </div>
                     <p className="text-sm text-muted-foreground">{file.customerName}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Hedef: {file.targetAssignee?.fullName ?? '—'} · Oluşturulma: {formatDisplayDate(file.createdAt)}
                     </p>
-                    {file.currentLocationSlot && (
-                      <p className="text-xs text-muted-foreground">
-                        Konum: {file.currentLocationSlot.code} - {file.currentLocationSlot.name}
-                      </p>
-                    )}
                   </div>
                   <FileActionButtons
                     file={{

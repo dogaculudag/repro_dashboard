@@ -15,6 +15,7 @@ import {
   PRIORITY_COLORS,
   ACTION_LABELS,
   formatDisplayDate,
+  formatDisplayDateOnly,
   formatDuration,
   formatDurationFromMinutes,
   calculateElapsedSeconds,
@@ -23,7 +24,7 @@ import { FileActionsPanel } from '@/components/files/file-actions-panel';
 import { FileInfoCard } from '@/components/files/file-info-card';
 import { FileTimelineCard } from '@/components/files/file-timeline-card';
 import { KsmTechnicalDataForm } from '@/components/files/ksm-technical-data-form';
-import { ArrowLeft, MapPin, User, Clock, Building2, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Clock, Building2, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -111,11 +112,11 @@ export default async function FileDetailPage({ params }: PageProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-muted-foreground" />
+              <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm text-muted-foreground">Konum</p>
+                <p className="text-sm text-muted-foreground">Termin</p>
                 <p className="font-medium">
-                  {file.currentLocationSlot?.code || 'Belirsiz'}
+                  {file.dueDate ? formatDisplayDateOnly(file.dueDate) : '—'}
                 </p>
               </div>
             </div>
@@ -152,9 +153,8 @@ export default async function FileDetailPage({ params }: PageProps) {
           dueDate: file.dueDate ?? null,
           priority: file.priority,
           requiresApproval: file.requiresApproval,
-          currentLocationSlotId: file.currentLocationSlotId,
-          currentLocationSlot: file.currentLocationSlot,
         }}
+        canEditTermin={session.user.role === 'ADMIN' || session.user.role === 'ONREPRO'}
       />
 
       {/* İşlemler: tek standart yer (Ön Repro + workflow aksiyonları) */}

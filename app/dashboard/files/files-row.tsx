@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { STATUS_LABELS, STATUS_COLORS, PRIORITY_LABELS } from '@/lib/utils';
+import { STATUS_LABELS, STATUS_COLORS, PRIORITY_LABELS, formatDisplayDateOnly } from '@/lib/utils';
+import { DueBadge } from '@/components/files/due-badge';
 import { ArrowRight, Check, X } from 'lucide-react';
 
 type FileRow = {
@@ -21,8 +22,8 @@ type FileRow = {
   assignedDesigner: { id: string; fullName: string } | null;
   targetAssignee?: { id: string; fullName: string } | null;
   currentDepartment: { id: string; name: string; code: string };
-  currentLocationSlot: { id: string; code: string; name: string } | null;
   fileType: { id: string; name: string } | null;
+  dueDate?: Date | string | null;
 };
 
 type FileTypeOption = { id: string; name: string };
@@ -134,9 +135,12 @@ export function FilesRow({
             {file.stage === 'PRE_REPRO' && file.assignedDesigner && (
               <p className="text-xs text-muted-foreground">Sahip: {file.assignedDesigner.fullName}</p>
             )}
-            {file.currentLocationSlot && (
-              <p className="text-xs text-muted-foreground">📍 {file.currentLocationSlot.code}</p>
-            )}
+            <div className="mt-1 flex flex-col items-end gap-0.5">
+              <span className="text-xs text-muted-foreground">
+                Termin: {file.dueDate ? formatDisplayDateOnly(file.dueDate) : '—'}
+              </span>
+              <DueBadge dueDate={file.dueDate} />
+            </div>
           </div>
           {isAdmin && !editing && (
             <Button variant="outline" size="sm" onClick={() => setEditing(true)}>

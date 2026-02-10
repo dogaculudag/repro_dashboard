@@ -11,10 +11,10 @@ import {
   STATUS_COLORS,
   PRIORITY_LABELS,
   PRIORITY_COLORS,
-  formatDisplayDate,
   formatDuration,
   calculateElapsedSeconds,
 } from '@/lib/utils';
+import { DueBadge } from '@/components/files/due-badge';
 import Link from 'next/link';
 import { Clock, ArrowRight, AlertCircle } from 'lucide-react';
 
@@ -101,7 +101,7 @@ export default async function QueuePage() {
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold">{file.fileNo}</span>
                           <Badge className={STATUS_COLORS[file.status]}>
                             {STATUS_LABELS[file.status]}
@@ -111,13 +111,9 @@ export default async function QueuePage() {
                               {PRIORITY_LABELS[file.priority]}
                             </Badge>
                           )}
+                          <DueBadge dueDate={file.dueDate} />
                         </div>
                         <p className="text-sm text-muted-foreground">{file.customerName}</p>
-                        {file.currentLocationSlot && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            📍 {file.currentLocationSlot.code} - {file.currentLocationSlot.name}
-                          </p>
-                        )}
                       </div>
                       <div className="text-right">
                         <div className="flex items-center gap-2 text-primary">
@@ -153,18 +149,14 @@ export default async function QueuePage() {
                   className="flex items-center justify-between p-4 border border-orange-200 bg-orange-50 rounded-lg"
                 >
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{file.fileNo}</span>
                       <Badge className={STATUS_COLORS[file.status]}>
                         {STATUS_LABELS[file.status]}
                       </Badge>
+                      <DueBadge dueDate={file.dueDate} />
                     </div>
                     <p className="text-sm text-muted-foreground">{file.customerName}</p>
-                    {file.currentLocationSlot && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        📍 {file.currentLocationSlot.code}
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Link href={`/dashboard/files/${file.id}`}>

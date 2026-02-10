@@ -5,13 +5,16 @@ CREATE TYPE "Role" AS ENUM ('ADMIN', 'ONREPRO', 'GRAFIKER', 'KALITE', 'KOLAJ');
 CREATE TYPE "FileStatus" AS ENUM ('AWAITING_ASSIGNMENT', 'ASSIGNED', 'IN_REPRO', 'APPROVAL_PREP', 'CUSTOMER_APPROVAL', 'REVISION_REQUIRED', 'IN_QUALITY', 'IN_KOLAJ', 'SENT_TO_PRODUCTION');
 
 -- CreateEnum
-CREATE TYPE "ActionType" AS ENUM ('CREATE', 'ASSIGN', 'TAKEOVER', 'TRANSFER', 'CUSTOMER_SENT', 'CUSTOMER_OK', 'CUSTOMER_NOK', 'QUALITY_OK', 'QUALITY_NOK', 'RESTART_MG', 'CLOSE', 'OVERRIDE', 'LOCATION_UPDATE', 'NOTE_ADDED', 'STATUS_CHANGE');
+CREATE TYPE "ActionType" AS ENUM ('CREATE', 'ASSIGN', 'TAKEOVER', 'TRANSFER', 'CUSTOMER_SENT', 'CUSTOMER_OK', 'CUSTOMER_NOK', 'QUALITY_OK', 'QUALITY_NOK', 'RESTART_MG', 'CLOSE', 'OVERRIDE', 'LOCATION_UPDATE', 'NOTE_ADDED', 'STATUS_CHANGE', 'PRE_REPRO_CLAIMED', 'PRE_REPRO_HANDED_OFF', 'PRE_REPRO_RETURNED_TO_QUEUE');
 
 -- CreateEnum
 CREATE TYPE "Priority" AS ENUM ('LOW', 'NORMAL', 'HIGH', 'URGENT');
 
 -- CreateEnum
 CREATE TYPE "LocationArea" AS ENUM ('WAITING', 'REPRO', 'QUALITY', 'KOLAJ', 'ARCHIVE');
+
+-- CreateEnum
+CREATE TYPE "Stage" AS ENUM ('PRE_REPRO', 'REPRO', 'PLOTTER_KONTROL', 'COLLAGE', 'DONE');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -39,6 +42,18 @@ CREATE TABLE "departments" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "departments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "file_types" (
+    "id" TEXT NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "description" VARCHAR(500),
+    "default_difficulty_level" INTEGER,
+    "default_difficulty_weight" DOUBLE PRECISION,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "file_types_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -75,11 +90,22 @@ CREATE TABLE "files" (
     "file_no" VARCHAR(50) NOT NULL,
     "customer_name" VARCHAR(200) NOT NULL,
     "customer_no" VARCHAR(50),
+    "sap_number" VARCHAR(50),
+    "order_name" VARCHAR(200),
+    "design_no" VARCHAR(50),
+    "revision_no" VARCHAR(50),
+    "due_date" TIMESTAMP(3),
     "ksm_data" JSONB,
+    "ksm_technical_data" JSONB,
     "status" "FileStatus" NOT NULL DEFAULT 'AWAITING_ASSIGNMENT',
+    "stage" "Stage",
+    "target_assignee_id" TEXT,
     "assigned_designer_id" TEXT,
     "current_department_id" TEXT NOT NULL,
     "current_location_slot_id" TEXT,
+    "file_type_id" TEXT,
+    "difficulty_level" INTEGER NOT NULL DEFAULT 3,
+    "difficulty_weight" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
     "iteration_number" INTEGER NOT NULL DEFAULT 1,
     "iteration_label" VARCHAR(20) NOT NULL DEFAULT 'MG1',
     "pending_takeover" BOOLEAN NOT NULL DEFAULT false,
@@ -90,6 +116,21 @@ CREATE TABLE "files" (
     "closed_at" TIMESTAMP(3),
 
     CONSTRAINT "files_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "time_entries" (
+    "id" TEXT NOT NULL,
+    "file_id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "department_id" TEXT NOT NULL,
+    "start_at" TIMESTAMP(3) NOT NULL,
+    "end_at" TIMESTAMP(3),
+    "duration_seconds" INTEGER,
+    "note" VARCHAR(500),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "time_entries_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -177,6 +218,9 @@ CREATE INDEX "users_is_active_idx" ON "users"("is_active");
 CREATE UNIQUE INDEX "departments_code_key" ON "departments"("code");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "file_types_name_key" ON "file_types"("name");
+
+-- CreateIndex
 CREATE INDEX "work_sessions_user_id_idx" ON "work_sessions"("user_id");
 
 -- CreateIndex
@@ -210,10 +254,19 @@ CREATE INDEX "files_file_no_idx" ON "files"("file_no");
 CREATE INDEX "files_status_idx" ON "files"("status");
 
 -- CreateIndex
+CREATE INDEX "files_stage_idx" ON "files"("stage");
+
+-- CreateIndex
+CREATE INDEX "files_target_assignee_id_idx" ON "files"("target_assignee_id");
+
+-- CreateIndex
 CREATE INDEX "files_assigned_designer_id_idx" ON "files"("assigned_designer_id");
 
 -- CreateIndex
 CREATE INDEX "files_current_department_id_idx" ON "files"("current_department_id");
+
+-- CreateIndex
+CREATE INDEX "files_file_type_id_idx" ON "files"("file_type_id");
 
 -- CreateIndex
 CREATE INDEX "files_created_at_idx" ON "files"("created_at");
@@ -223,6 +276,21 @@ CREATE INDEX "files_pending_takeover_idx" ON "files"("pending_takeover");
 
 -- CreateIndex
 CREATE INDEX "files_customer_name_idx" ON "files"("customer_name");
+
+-- CreateIndex
+CREATE INDEX "time_entries_file_id_idx" ON "time_entries"("file_id");
+
+-- CreateIndex
+CREATE INDEX "time_entries_user_id_idx" ON "time_entries"("user_id");
+
+-- CreateIndex
+CREATE INDEX "time_entries_department_id_idx" ON "time_entries"("department_id");
+
+-- CreateIndex
+CREATE INDEX "time_entries_start_at_idx" ON "time_entries"("start_at");
+
+-- CreateIndex
+CREATE INDEX "time_entries_end_at_idx" ON "time_entries"("end_at");
 
 -- CreateIndex
 CREATE INDEX "timers_file_id_idx" ON "timers"("file_id");
@@ -279,10 +347,25 @@ ALTER TABLE "work_sessions" ADD CONSTRAINT "work_sessions_department_id_fkey" FO
 ALTER TABLE "files" ADD CONSTRAINT "files_assigned_designer_id_fkey" FOREIGN KEY ("assigned_designer_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "files" ADD CONSTRAINT "files_target_assignee_id_fkey" FOREIGN KEY ("target_assignee_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "files" ADD CONSTRAINT "files_current_department_id_fkey" FOREIGN KEY ("current_department_id") REFERENCES "departments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "files" ADD CONSTRAINT "files_current_location_slot_id_fkey" FOREIGN KEY ("current_location_slot_id") REFERENCES "location_slots"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "files" ADD CONSTRAINT "files_file_type_id_fkey" FOREIGN KEY ("file_type_id") REFERENCES "file_types"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "time_entries" ADD CONSTRAINT "time_entries_file_id_fkey" FOREIGN KEY ("file_id") REFERENCES "files"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "time_entries" ADD CONSTRAINT "time_entries_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "time_entries" ADD CONSTRAINT "time_entries_department_id_fkey" FOREIGN KEY ("department_id") REFERENCES "departments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "timers" ADD CONSTRAINT "timers_file_id_fkey" FOREIGN KEY ("file_id") REFERENCES "files"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -316,3 +399,4 @@ ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_by_user_id_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "sla_targets" ADD CONSTRAINT "sla_targets_department_id_fkey" FOREIGN KEY ("department_id") REFERENCES "departments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+

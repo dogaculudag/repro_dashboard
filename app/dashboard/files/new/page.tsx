@@ -23,7 +23,6 @@ type CustomerOption = { customerName: string; customerNo?: string };
 export default function NewFilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [locations, setLocations] = useState<any[]>([]);
   const [designers, setDesigners] = useState<{ id: string; fullName: string; username: string }[]>([]);
   const [nextFileNo, setNextFileNo] = useState<string>('');
   const [customerSuggestions, setCustomerSuggestions] = useState<CustomerOption[]>([]);
@@ -41,7 +40,6 @@ export default function NewFilePage() {
     designNo: '',
     revisionNo: '',
     targetAssigneeId: '',
-    locationSlotId: '',
     priority: 'NORMAL',
     requiresApproval: true,
     dueDate: '',
@@ -54,12 +52,10 @@ export default function NewFilePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/locations?area=WAITING').then((res) => res.json()),
       fetch('/api/files/next-file-no').then((res) => res.json()),
       fetch('/api/users/designers').then((res) => res.json()),
     ])
-      .then(([locData, fileNoData, designersData]) => {
-        if (locData.success) setLocations(locData.data);
+      .then(([fileNoData, designersData]) => {
         if (fileNoData.success) setNextFileNo(fileNoData.data.fileNo);
         if (designersData.success) setDesigners(designersData.data ?? []);
       })
@@ -119,7 +115,6 @@ export default function NewFilePage() {
         designNo: formData.designNo || null,
         revisionNo: formData.revisionNo || null,
         targetAssigneeId: formData.targetAssigneeId || undefined,
-        locationSlotId: formData.locationSlotId,
         priority: formData.priority,
         requiresApproval: formData.requiresApproval,
         ksmData: Object.keys(ksmData).length > 0 ? ksmData : null,
@@ -329,29 +324,6 @@ export default function NewFilePage() {
                   Dosya Ön Repro kuyruğuna düşer; devredildiğinde bu kişiye atanır.
                 </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="locationSlotId">Fiziksel Konum *</Label>
-                <Select
-                  value={formData.locationSlotId}
-                  onValueChange={(value) => setFormData({ ...formData, locationSlotId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Konum seçin..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((loc) => (
-                      <SelectItem
-                        key={loc.id}
-                        value={loc.id}
-                        disabled={!!loc.currentFile}
-                      >
-                        {loc.code} - {loc.name}
-                        {loc.currentFile && ' (dolu)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -431,7 +403,7 @@ export default function NewFilePage() {
         <div className="flex gap-4">
           <Button
             type="submit"
-            disabled={loading || !formData.locationSlotId}
+            disabled={loading}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Dosya Oluştur

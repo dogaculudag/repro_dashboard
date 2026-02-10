@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
-import { PRIORITY_LABELS, PRIORITY_COLORS, formatDisplayDate } from '@/lib/utils';
+import { PRIORITY_LABELS, PRIORITY_COLORS, formatDisplayDate, formatDisplayDateOnly } from '@/lib/utils';
+import { DueBadge } from '@/components/files/due-badge';
 import {
   UserPlus,
   Loader2,
@@ -248,6 +249,10 @@ export default function AssignmentsPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{file.customerName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                        Termin: {file.dueDate ? formatDisplayDateOnly(file.dueDate) : '—'}
+                        <DueBadge dueDate={file.dueDate} />
+                      </p>
                     </div>
                     <div className="text-sm text-muted-foreground flex-shrink-0">
                       {formatDisplayDate(file.createdAt)}

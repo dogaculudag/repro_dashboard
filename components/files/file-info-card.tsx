@@ -29,15 +29,12 @@ type FileForInfo = {
   dueDate: Date | null;
   priority: string;
   requiresApproval: boolean;
-  currentLocationSlotId: string | null;
-  currentLocationSlot?: { id: string; code: string; name: string } | null;
 };
 
-export function FileInfoCard({ file }: { file: FileForInfo }) {
+export function FileInfoCard({ file, canEditTermin = false }: { file: FileForInfo; canEditTermin?: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [locations, setLocations] = useState<{ id: string; code: string; name: string; currentFile?: unknown }[]>([]);
   const [formData, setFormData] = useState({
     customerName: file.customerName,
     customerNo: file.customerNo ?? '',
@@ -48,7 +45,6 @@ export function FileInfoCard({ file }: { file: FileForInfo }) {
     dueDate: file.dueDate ? new Date(file.dueDate).toISOString().slice(0, 10) : '',
     priority: file.priority,
     requiresApproval: file.requiresApproval,
-    locationSlotId: file.currentLocationSlotId ?? '',
   });
 
   useEffect(() => {
@@ -63,19 +59,7 @@ export function FileInfoCard({ file }: { file: FileForInfo }) {
     if (isoDue !== formData.dueDate) setFormData((prev) => ({ ...prev, dueDate: isoDue }));
     if (file.priority !== formData.priority) setFormData((prev) => ({ ...prev, priority: file.priority }));
     if (file.requiresApproval !== formData.requiresApproval) setFormData((prev) => ({ ...prev, requiresApproval: file.requiresApproval }));
-    if ((file.currentLocationSlotId ?? '') !== formData.locationSlotId) setFormData((prev) => ({ ...prev, locationSlotId: file.currentLocationSlotId ?? '' }));
   }, [file]);
-
-  useEffect(() => {
-    if (editing) {
-      fetch('/api/locations?area=WAITING')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) setLocations(data.data);
-        })
-        .catch(console.error);
-    }
-  }, [editing]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -90,8 +74,7 @@ export function FileInfoCard({ file }: { file: FileForInfo }) {
         priority: formData.priority,
         requiresApproval: formData.requiresApproval,
       };
-      if (formData.dueDate) body.dueDate = formData.dueDate;
-      if (formData.locationSlotId) body.locationSlotId = formData.locationSlotId;
+      body.dueDate = formData.dueDate || null;
 
       const res = await fetch(`/api/files/${file.id}`, {
         method: 'PATCH',
@@ -170,16 +153,12 @@ export function FileInfoCard({ file }: { file: FileForInfo }) {
               <p className="font-medium">{PRIORITY_LABELS[file.priority] ?? file.priority}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Termin Tarihi</p>
+              <p className="text-muted-foreground">Termin</p>
               <p className="font-medium">{displayDue}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Müşteri onayı gerekli</p>
               <p className="font-medium">{file.requiresApproval ? 'Evet' : 'Hayır'}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Fiziksel Konum</p>
-              <p className="font-medium">{file.currentLocationSlot?.code ?? '—'}</p>
             </div>
           </div>
         ) : (
@@ -252,28 +231,13 @@ export function FileInfoCard({ file }: { file: FileForInfo }) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Termin Tarihi</Label>
+              <Label>Termin</Label>
               <Input
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                disabled={!canEditTermin}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Fiziksel Konum</Label>
-              <Select value={formData.locationSlotId} onValueChange={(v) => setFormData({ ...formData, locationSlotId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Konum seçin..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id} disabled={!!loc.currentFile}>
-                      {loc.code} - {loc.name}
-                      {loc.currentFile ? ' (dolu)' : null}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="flex items-center gap-2 md:col-span-2">
               <input

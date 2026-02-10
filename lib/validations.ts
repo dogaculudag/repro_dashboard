@@ -33,7 +33,7 @@ export const createFileSchema = z.object({
   revisionNo: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
   dueDate: optionalDueDate,
   ksmData: z.record(z.any()).optional().nullable(),
-  locationSlotId: z.string().uuid('Geçersiz konum ID'),
+  locationSlotId: z.string().uuid('Geçersiz konum ID').optional(),
   requiresApproval: z.boolean().default(true),
   priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).default('NORMAL'),
   targetAssigneeId: z.preprocess(
@@ -50,8 +50,9 @@ export const updateFileSchema = z.object({
   designNo: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
   revisionNo: z.string().max(50).optional().nullable().transform((v) => v?.trim() || null),
   dueDate: optionalDueDate,
+  /** Geriye dönük uyumluluk: terminAt gelirse dueDate'e yazılır */
+  terminAt: optionalDueDate.optional(),
   ksmData: z.record(z.any()).optional().nullable(),
-  locationSlotId: z.string().uuid().optional(),
   priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).optional(),
   requiresApproval: z.boolean().optional(),
 });
@@ -63,13 +64,11 @@ export const assignFileSchema = z.object({
 });
 
 export const takeoverSchema = z.object({
-  locationSlotId: z.string().uuid().optional(),
   note: z.string().max(1000).optional(),
 });
 
 export const transferSchema = z.object({
   toDepartmentId: z.string().uuid('Geçersiz departman ID'),
-  locationSlotId: z.string().uuid().optional(),
   note: z.string().max(1000).optional(),
 });
 

@@ -66,7 +66,6 @@ export async function POST(
           params.id,
           session.user.id,
           session.user.departmentId,
-          validated.locationSlotId,
           validated.note
         );
         break;
