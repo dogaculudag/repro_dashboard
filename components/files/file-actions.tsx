@@ -20,6 +20,7 @@ import {
 interface FileActionsProps {
   fileId: string;
   availableActions: WorkflowAction[];
+  qualityNokReturn?: boolean;
 }
 
 const ACTION_CONFIG: Record<WorkflowAction, {
@@ -44,7 +45,7 @@ const ACTION_CONFIG: Record<WorkflowAction, {
   TRANSFER: { label: 'Transfer Et', icon: Send, variant: 'default', requiresNote: false },
 };
 
-export function FileActions({ fileId, availableActions }: FileActionsProps) {
+export function FileActions({ fileId, availableActions, qualityNokReturn }: FileActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [showNoteFor, setShowNoteFor] = useState<string | null>(null);
@@ -111,6 +112,10 @@ export function FileActions({ fileId, availableActions }: FileActionsProps) {
           const config = ACTION_CONFIG[action];
           const Icon = config.icon;
           const isLoading = loading === action;
+          const label =
+            action === 'REQUEST_APPROVAL' && qualityNokReturn === true
+              ? 'Kolaja Gönder'
+              : config.label;
 
           return (
             <Button
@@ -124,7 +129,7 @@ export function FileActions({ fileId, availableActions }: FileActionsProps) {
               ) : (
                 <Icon className="mr-2 h-4 w-4" />
               )}
-              {config.label}
+              {label}
             </Button>
           );
         })}

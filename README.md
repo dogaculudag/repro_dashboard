@@ -254,7 +254,7 @@ repro_dashboard/
 │       ├── work-sessions/        # aktif work session vb.
 │       └── admin/                # admin-only api (analytics, file-types, admin file patch)
 ├── components/                   # React bileşenleri
-│   ├── layout/                   # Sidebar/Header/Active banner
+│   ├── layout/                   # Sidebar/Header
 │   ├── files/                    # Dosya detay aksiyonları + timer UI
 │   ├── dashboard/                # Dashboard kartları (örn. MySummaryCard)
 │   └── ui/                       # shadcn/ui primitive’leri + toaster

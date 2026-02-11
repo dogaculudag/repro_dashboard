@@ -782,11 +782,15 @@ export async function getDesignerFiles(designerId: string) {
 }
 
 /**
- * Get files in Pre-Repro queue (stage = PRE_REPRO)
+ * Get files in Pre-Repro queue (stage = PRE_REPRO, devralınmamış = assignedDesignerId null).
+ * Devralınan dosyalar listeden düşer (sadece kuyrukta bekleyenler görünür).
  */
 export async function getPreReproQueue() {
   return prisma.file.findMany({
-    where: { stage: Stage.PRE_REPRO },
+    where: {
+      stage: Stage.PRE_REPRO,
+      assignedDesignerId: null,
+    },
     include: {
       targetAssignee: {
         select: { id: true, fullName: true, username: true },

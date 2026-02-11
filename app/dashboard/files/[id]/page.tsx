@@ -176,6 +176,7 @@ export default async function FileDetailPage({ params, searchParams }: PageProps
           currentDepartment: file.currentDepartment,
           pendingTakeover: file.pendingTakeover,
           requiresApproval: file.requiresApproval,
+          qualityNokReturn: (file as { qualityNokReturn?: boolean }).qualityNokReturn,
         }}
         fileId={file.id}
         currentUserId={session.user.id}

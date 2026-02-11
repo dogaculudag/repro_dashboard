@@ -136,6 +136,33 @@ export const createUserSchema = z.object({
   departmentId: z.string().uuid('Geçersiz departman ID'),
 });
 
+/** Admin create user: password optional (generated if empty) */
+export const adminCreateUserSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Kullanıcı adı en az 3 karakter olmalıdır')
+    .max(50, 'Kullanıcı adı en fazla 50 karakter olabilir')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir'),
+  password: z
+    .string()
+    .optional()
+    .refine((v) => !v || v.trim().length === 0 || v.trim().length >= 8, {
+      message: 'Şifre en az 8 karakter olmalıdır',
+    })
+    .transform((v) => (v && v.trim().length >= 8 ? v.trim() : undefined)),
+  fullName: z
+    .string()
+    .min(2, 'Ad soyad en az 2 karakter olmalıdır')
+    .max(100, 'Ad soyad en fazla 100 karakter olabilir'),
+  email: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((v) => (v && v.trim() ? v.trim() : null)),
+  role: z.enum(['ADMIN', 'ONREPRO', 'GRAFIKER', 'KALITE', 'KOLAJ']),
+  departmentId: z.string().uuid('Geçersiz departman ID'),
+});
+
 export const updateUserSchema = z.object({
   fullName: z.string().min(2).max(100).optional(),
   email: z.string().email().optional().nullable(),

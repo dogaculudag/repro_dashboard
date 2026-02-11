@@ -12,6 +12,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed-files-only": "tsx prisma/seed-files-only.ts",
+    "db:seed:pre-repro": "tsx prisma/seed.pre-repro-files.ts",
     "db:seed-reset-files": "tsx prisma/seed-reset-files.ts",
     "db:studio": "prisma studio",
     "test": "vitest",

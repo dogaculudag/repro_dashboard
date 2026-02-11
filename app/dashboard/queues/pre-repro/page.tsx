@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getPreReproQueue } from '@/lib/services/file.service';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileActionButtons } from '@/components/files/file-action-buttons';
 import Link from 'next/link';

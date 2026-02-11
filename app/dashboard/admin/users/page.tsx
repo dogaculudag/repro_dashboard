@@ -1,11 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ROLE_LABELS, formatDisplayDate } from '@/lib/utils';
-import { Users as UsersIcon } from 'lucide-react';
-import { UserList } from '@/components/admin/user-list';
+import { AdminUsersClient } from './admin-users-client';
 
 async function getUsers() {
   return prisma.user.findMany({
@@ -32,24 +28,10 @@ export default async function AdminUsersPage() {
 
   const users = await getUsers();
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Kullanıcı Yönetimi</h1>
-        <p className="text-gray-500">Sistem kullanıcılarını görüntüleyin ve yönetin</p>
-      </div>
+  const serialized = users.map((u) => ({
+    ...u,
+    createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : String(u.createdAt),
+  }));
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UsersIcon className="h-5 w-5" />
-            Kullanıcı Listesi ({users.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <UserList users={users} />
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <AdminUsersClient initialUsers={serialized} />;
 }

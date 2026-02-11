@@ -15,6 +15,7 @@ export type FileForActionsPanel = {
   currentDepartment?: { code: string } | null;
   pendingTakeover?: boolean;
   requiresApproval?: boolean;
+  qualityNokReturn?: boolean;
 };
 
 type FileActionsPanelProps = {
@@ -57,7 +58,11 @@ export function FileActionsPanel({
   );
 
   const workflowActions = (
-    <FileActions fileId={fileId} availableActions={availableWorkflowActions} />
+    <FileActions
+      fileId={fileId}
+      availableActions={availableWorkflowActions}
+      qualityNokReturn={file.qualityNokReturn}
+    />
   );
 
   const hasWorkflowUi = !isPreRepro && availableWorkflowActions.length > 0;
