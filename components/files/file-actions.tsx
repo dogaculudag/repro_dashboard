@@ -21,6 +21,8 @@ interface FileActionsProps {
   fileId: string;
   availableActions: WorkflowAction[];
   qualityNokReturn?: boolean;
+  /** When "bahar", TAKEOVER (Devral) button is never shown */
+  currentUsername?: string;
 }
 
 const ACTION_CONFIG: Record<WorkflowAction, {
@@ -45,7 +47,7 @@ const ACTION_CONFIG: Record<WorkflowAction, {
   TRANSFER: { label: 'Transfer Et', icon: Send, variant: 'default', requiresNote: false },
 };
 
-export function FileActions({ fileId, availableActions, qualityNokReturn }: FileActionsProps) {
+export function FileActions({ fileId, availableActions, qualityNokReturn, currentUsername }: FileActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [showNoteFor, setShowNoteFor] = useState<string | null>(null);
@@ -103,7 +105,13 @@ export function FileActions({ fileId, availableActions, qualityNokReturn }: File
     }
   };
 
-  const filteredActions = availableActions.filter(a => a !== 'ADD_NOTE' && a !== 'ASSIGN' && a !== 'TRANSFER');
+  const filteredActions = availableActions.filter(
+    (a) =>
+      a !== 'ADD_NOTE' &&
+      a !== 'ASSIGN' &&
+      a !== 'TRANSFER' &&
+      (currentUsername !== 'bahar' || a !== 'TAKEOVER')
+  );
 
   return (
     <div className="space-y-4">

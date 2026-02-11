@@ -16,10 +16,16 @@ export async function POST(
       );
     }
 
-    const { role } = session.user;
+    const { role, username } = session.user;
     if (role !== 'ONREPRO' && role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Ön Repro devralma yetkiniz yok' } },
+        { status: 403 }
+      );
+    }
+    if (username === 'bahar') {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Bu kullanıcı dosya devralamaz.' } },
         { status: 403 }
       );
     }

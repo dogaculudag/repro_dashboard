@@ -61,6 +61,12 @@ export async function POST(
       }
 
       case 'TAKEOVER': {
+        if (session.user.username === 'bahar') {
+          return NextResponse.json(
+            { success: false, error: { code: 'FORBIDDEN', message: 'Bu kullanıcı dosya devralamaz.' } },
+            { status: 403 }
+          );
+        }
         const validated = takeoverSchema.parse(data);
         result = await takeoverFile(
           params.id,
