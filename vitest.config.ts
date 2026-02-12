@@ -10,6 +10,8 @@ export default defineConfig({
     env: {
       NODE_ENV: 'test',
     },
+    // Run test files sequentially to avoid DB conflicts (shared repro_test DB)
+    fileParallelism: false,
   },
   resolve: {
     alias: {
