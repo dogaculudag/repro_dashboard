@@ -4,6 +4,9 @@ import { assignFile } from '@/lib/services/file.service';
 import { hasPermission } from '@/lib/rbac';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const singleAssignSchema = z.object({
   fileId: z.string().uuid('Geçersiz dosya ID'),
   assigneeId: z.string().uuid('Geçersiz atanacak kullanıcı ID'),

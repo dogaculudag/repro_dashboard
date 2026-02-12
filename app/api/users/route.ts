@@ -5,6 +5,9 @@ import { hasPermission } from '@/lib/rbac';
 import { createUserSchema } from '@/lib/validations';
 import bcrypt from 'bcryptjs';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

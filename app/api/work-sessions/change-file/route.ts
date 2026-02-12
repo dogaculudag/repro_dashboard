@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth';
 import { changeFile } from '@/lib/services/work-session.service';
 import { changeFileSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();

@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth';
 import { getFileById, updateFile } from '@/lib/services/file.service';
 import { updateFileSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

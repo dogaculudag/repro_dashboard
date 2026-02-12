@@ -4,6 +4,9 @@ import { getDepartmentTotalTime } from '@/lib/services/work-session.service';
 import { hasRole } from '@/lib/rbac';
 import { workSessionReportQuerySchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

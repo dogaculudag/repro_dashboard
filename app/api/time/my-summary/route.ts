@@ -4,6 +4,9 @@ import { getMyTimeSummary } from '@/lib/services/time-entry.service';
 import { getDateRange } from '@/lib/services/work-session.service';
 import { mySummaryQuerySchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

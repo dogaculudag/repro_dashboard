@@ -12,8 +12,8 @@ function formatDuration(seconds: number): string {
 }
 
 type Summary = {
-  from: string;
-  to: string;
+  from: string | Date;
+  to: string | Date;
   totalSeconds: number;
   totalHours: number;
   weightedScore: number;
@@ -22,15 +22,21 @@ type Summary = {
   breakdownByDepartment: Array<{ departmentId: string; name: string; code: string; totalSeconds: number }>;
 };
 
-export function MySummaryCard() {
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
+interface MySummaryCardProps {
+  /** When provided (e.g. from Server Component), no client-side fetch needed */
+  initialSummary?: Summary | null;
+}
+
+export function MySummaryCard({ initialSummary }: MySummaryCardProps = {}) {
+  const [summary, setSummary] = useState<Summary | null>(initialSummary ?? null);
+  const [loading, setLoading] = useState(!initialSummary);
 
   useEffect(() => {
+    if (initialSummary) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/time/my-summary?period=week');
+        const res = await fetch('/api/time/my-summary?period=week', { cache: 'no-store' });
         const json = await res.json();
         if (!cancelled && json.success && json.data) {
           setSummary(json.data);
@@ -42,7 +48,7 @@ export function MySummaryCard() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [initialSummary]);
 
   if (loading || !summary) return null;
 

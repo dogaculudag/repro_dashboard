@@ -17,6 +17,9 @@ import { canPerformAction } from '@/lib/rbac';
 import { userHasActiveTimer } from '@/lib/services/timer.service';
 import { assignFileSchema, takeoverSchema, nokNoteSchema, restartMgSchema, simpleActionSchema, addNoteActionSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }

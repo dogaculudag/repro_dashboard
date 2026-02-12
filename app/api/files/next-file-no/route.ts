@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth';
 import { getNextFileNo } from '@/lib/services/file.service';
 import { hasPermission } from '@/lib/rbac';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/files/next-file-no
  * Returns the next auto-generated file number (e.g. REP-2026-0001).

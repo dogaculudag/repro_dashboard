@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { FileStatus } from '@prisma/client';
 import { countAssignmentPoolForUser, getMyWorkCounts } from '@/lib/services/file.service';
+import { getMyTimeSummary } from '@/lib/services/time-entry.service';
+import { getDateRange } from '@/lib/services/work-session.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDisplayDate, STATUS_LABELS, PRIORITY_COLORS } from '@/lib/utils';
 import Link from 'next/link';
@@ -68,15 +70,15 @@ async function getDashboardData(role: string, userId: string, departmentId: stri
       stats: { unassignedCount, activeFilesCount, completedToday, overdueCount: overdueFiles.length },
       overdueFiles,
       recentFiles,
+      mySummary: undefined as Awaited<ReturnType<typeof getMyTimeSummary>> | undefined,
     };
   }
 
   // Non-admin "Üzerindeki işler / Devir bekleyen" should match `/dashboard/queue` exactly.
-  const { activeCount: myActiveFiles, pendingCount: pendingTakeover } = await getMyWorkCounts(
-    role,
-    userId,
-    departmentId
-  );
+  const [{ activeCount: myActiveFiles, pendingCount: pendingTakeover }, mySummary] = await Promise.all([
+    getMyWorkCounts(role, userId, departmentId),
+    getMyTimeSummary(userId, getDateRange('week')),
+  ]);
 
   const recentFiles = await prisma.file.findMany({
     where: {
@@ -94,6 +96,7 @@ async function getDashboardData(role: string, userId: string, departmentId: stri
   return {
     stats: { myActiveFiles, pendingTakeover },
     recentFiles,
+    mySummary,
   };
 }
 
@@ -191,7 +194,7 @@ export default async function DashboardPage() {
                 <p className="text-xs text-muted-foreground">Devralınacak dosyalar</p>
               </CardContent>
             </Card>
-            <MySummaryCard />
+            <MySummaryCard initialSummary={data.mySummary} />
           </>
         )}
       </div>

@@ -4,6 +4,9 @@ import { listFiles, createFile } from '@/lib/services/file.service';
 import { createFileSchema, fileQuerySchema } from '@/lib/validations';
 import { hasPermission } from '@/lib/rbac';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

@@ -3,6 +3,9 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { completePreRepro } from '@/lib/services/file.service';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: { id: string } }
