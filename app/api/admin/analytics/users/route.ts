@@ -4,6 +4,9 @@ import { getUsersAnalytics } from '@/lib/services/analytics.service';
 import { analyticsUsersQuerySchema } from '@/lib/validations';
 import { subDays } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();

@@ -4,6 +4,9 @@ import { assignFile } from '@/lib/services/file.service';
 import { hasPermission } from '@/lib/rbac';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const bulkAssignSchema = z.object({
   fileIds: z.array(z.string().uuid()).min(1, 'En az bir dosya seçin').max(100, 'En fazla 100 dosya atanabilir'),
   assigneeId: z.string().uuid('Geçersiz atanacak kullanıcı ID'),

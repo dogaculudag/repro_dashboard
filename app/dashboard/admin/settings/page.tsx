@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { getDepartmentFileCounts } from '@/lib/services/department.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock } from 'lucide-react';
@@ -15,7 +16,7 @@ const AREA_LABELS: Record<string, string> = {
 };
 
 async function getSettingsData() {
-  const [locations, slaTargets, departments] = await Promise.all([
+  const [locations, slaTargets, departments, fileCounts] = await Promise.all([
     prisma.locationSlot.findMany({
       where: { isActive: true },
       orderBy: [{ area: 'asc' }, { row: 'asc' }, { column: 'asc' }],
@@ -28,9 +29,10 @@ async function getSettingsData() {
     prisma.department.findMany({
       orderBy: { sortOrder: 'asc' },
     }),
+    getDepartmentFileCounts(),
   ]);
 
-  return { locations, slaTargets, departments };
+  return { locations, slaTargets, departments, fileCounts };
 }
 
 export default async function AdminSettingsPage() {
@@ -38,7 +40,7 @@ export default async function AdminSettingsPage() {
   if (!session?.user) redirect('/login');
   if (session.user.role !== 'ADMIN') redirect('/dashboard');
 
-  const { locations, slaTargets, departments } = await getSettingsData();
+  const { locations, slaTargets, departments, fileCounts } = await getSettingsData();
 
   return (
     <div className="space-y-6">
@@ -48,7 +50,7 @@ export default async function AdminSettingsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <DepartmentsList departments={departments} />
+        <DepartmentsList departments={departments} initialFileCounts={fileCounts} />
 
         <Card>
           <CardHeader>

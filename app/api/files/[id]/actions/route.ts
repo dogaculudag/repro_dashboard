@@ -17,6 +17,9 @@ import { canPerformAction } from '@/lib/rbac';
 import { userHasActiveTimer } from '@/lib/services/timer.service';
 import { assignFileSchema, takeoverSchema, nokNoteSchema, restartMgSchema, simpleActionSchema, addNoteActionSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -61,6 +64,12 @@ export async function POST(
       }
 
       case 'TAKEOVER': {
+        if (session.user.username === 'bahar') {
+          return NextResponse.json(
+            { success: false, error: { code: 'FORBIDDEN', message: 'Bu kullanıcı dosya devralamaz.' } },
+            { status: 403 }
+          );
+        }
         const validated = takeoverSchema.parse(data);
         result = await takeoverFile(
           params.id,

@@ -80,6 +80,7 @@ export default async function PreReproQueuePage() {
                       stage: file.stage != null ? String(file.stage) : undefined,
                     }}
                     currentUserId={session.user!.id}
+                    currentUsername={session.user?.username}
                   />
                 </div>
               ))}

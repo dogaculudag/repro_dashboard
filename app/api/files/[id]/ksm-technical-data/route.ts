@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth';
 import { updateKsmTechnicalDataNormalized } from '@/lib/services/file.service';
 import { ksmTechnicalDataUpdateSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

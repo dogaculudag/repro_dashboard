@@ -22,6 +22,7 @@ type FileActionsPanelProps = {
   file: FileForActionsPanel;
   fileId: string;
   currentUserId: string;
+  currentUsername?: string;
   availableWorkflowActions: WorkflowAction[];
   hasActiveTimer: boolean;
 };
@@ -35,6 +36,7 @@ export function FileActionsPanel({
   file,
   fileId,
   currentUserId,
+  currentUsername,
   availableWorkflowActions,
   hasActiveTimer,
 }: FileActionsPanelProps) {
@@ -54,6 +56,7 @@ export function FileActionsPanel({
       currentUserId={currentUserId}
       size="default"
       hideClaimButton={hideClaimOnDetail}
+      currentUsername={currentUsername}
     />
   );
 
@@ -62,6 +65,7 @@ export function FileActionsPanel({
       fileId={fileId}
       availableActions={availableWorkflowActions}
       qualityNokReturn={file.qualityNokReturn}
+      currentUsername={currentUsername}
     />
   );
 

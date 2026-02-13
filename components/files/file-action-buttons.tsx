@@ -22,6 +22,8 @@ type FileActionButtonsProps = {
   size?: 'default' | 'sm' | 'lg' | 'icon';
   /** When true, do not show Devral button (e.g. on file detail page for Ön Repro – claim only from queue) */
   hideClaimButton?: boolean;
+  /** When "bahar", Devral button is never shown */
+  currentUsername?: string;
 };
 
 export function FileActionButtons({
@@ -29,6 +31,7 @@ export function FileActionButtons({
   currentUserId,
   size = 'sm',
   hideClaimButton = false,
+  currentUsername,
 }: FileActionButtonsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<'devral' | 'devret' | 'return' | null>(null);
@@ -122,7 +125,7 @@ export function FileActionButtons({
   };
 
   if (assignedDesignerId == null) {
-    if (hideClaimButton) {
+    if (hideClaimButton || currentUsername === 'bahar') {
       return null;
     }
     return (

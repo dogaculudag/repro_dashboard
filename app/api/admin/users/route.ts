@@ -5,6 +5,9 @@ import { adminCreateUserSchema } from '@/lib/validations';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user) {

@@ -3,6 +3,9 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { claimPreRepro } from '@/lib/services/file.service';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: { id: string } }
@@ -16,10 +19,16 @@ export async function POST(
       );
     }
 
-    const { role } = session.user;
+    const { role, username } = session.user;
     if (role !== 'ONREPRO' && role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Ön Repro devralma yetkiniz yok' } },
+        { status: 403 }
+      );
+    }
+    if (username === 'bahar') {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Bu kullanıcı dosya devralamaz.' } },
         { status: 403 }
       );
     }

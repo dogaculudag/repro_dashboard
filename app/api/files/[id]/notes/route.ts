@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth';
 import { getFileNotes, addNote } from '@/lib/services/note.service';
 import { noteSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

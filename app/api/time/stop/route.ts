@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth';
 import { stopTimeEntry } from '@/lib/services/time-entry.service';
 import { timeStopSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();

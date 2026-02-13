@@ -180,6 +180,7 @@ export default async function FileDetailPage({ params, searchParams }: PageProps
         }}
         fileId={file.id}
         currentUserId={session.user.id}
+        currentUsername={session.user.username}
         availableWorkflowActions={actionsForUi}
         hasActiveTimer={hasTimer}
       />

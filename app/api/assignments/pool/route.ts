@@ -4,6 +4,9 @@ import { prisma } from '@/lib/db';
 import { listFiles } from '@/lib/services/file.service';
 import { hasPermission } from '@/lib/rbac';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/assignments/pool
  * Returns files that are at the current user (Bahar atama havuzu).

@@ -25,18 +25,21 @@ interface FileCount {
 
 interface DepartmentsListProps {
   departments: Department[];
+  /** When provided (e.g. from Server Component), no client-side fetch needed */
+  initialFileCounts?: FileCount[];
 }
 
-export function DepartmentsList({ departments }: DepartmentsListProps) {
-  const [fileCounts, setFileCounts] = useState<FileCount[] | null>(null);
-  const [loading, setLoading] = useState(true);
+export function DepartmentsList({ departments, initialFileCounts }: DepartmentsListProps) {
+  const [fileCounts, setFileCounts] = useState<FileCount[] | null>(initialFileCounts ?? null);
+  const [loading, setLoading] = useState(!initialFileCounts);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (initialFileCounts) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/admin/departments/file-counts');
+        const res = await fetch('/api/admin/departments/file-counts', { cache: 'no-store' });
         const json = await res.json();
         if (!cancelled) {
           if (json.success && json.data) {
@@ -59,7 +62,7 @@ export function DepartmentsList({ departments }: DepartmentsListProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialFileCounts]);
 
   // Create a map for quick lookup
   const countsMap = new Map<string, FileCount>();

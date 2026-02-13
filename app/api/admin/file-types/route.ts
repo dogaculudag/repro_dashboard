@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth';
 import { getAllFileTypes, createFileType } from '@/lib/services/file-type.service';
 import { createFileTypeSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const session = await auth();

@@ -4,6 +4,9 @@ import { auth } from '@/lib/auth';
 import { getFileTypeById, updateFileType, deleteFileType } from '@/lib/services/file-type.service';
 import { updateFileTypeSchema } from '@/lib/validations';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

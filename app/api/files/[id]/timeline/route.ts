@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth';
 import { getFileAuditLogs } from '@/lib/services/audit.service';
 import { getFileTimers } from '@/lib/services/timer.service';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
